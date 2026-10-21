@@ -99,23 +99,19 @@
                         <button class="btn-chip" id="btnProfDec">2026년 12월 캘린더</button>
                     </div>
                     <div class="prof-cal-legend">
-                        <span class="legend-chip-item"><span class="legend-color-box many"></span> 4인 이상 가능</span>
-                        <span class="legend-chip-item"><span class="legend-color-box moderate"></span> 2~3인 가능</span>
-                        <span class="legend-chip-item"><span class="legend-color-box some"></span> 1인 가능</span>
-                        <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정일</span>
+                        <span class="legend-chip-item"><span class="legend-color-box many"></span> 참석 가능 교수님 (성 표기: 김·이·권·한·정·외1·외2)</span>
+                        <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정</span>
                         <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>30분 단위 시간표에서 발표자 입력 후 확정/취소</strong>가 가능합니다.</span>
                     </div>
                 </div>
 
-                <!-- Calendar Grid -->
+                <!-- Calendar Grid (월~금 평일 5일 전용) -->
                 <div class="calendar-grid-header">
-                    <div class="day-label sun">일</div>
                     <div class="day-label">월</div>
                     <div class="day-label">화</div>
                     <div class="day-label">수</div>
                     <div class="day-label">목</div>
                     <div class="day-label">금</div>
-                    <div class="day-label sat">토</div>
                 </div>
                 <div class="calendar-grid-body" id="profCalendarGrid"></div>
             </section>
@@ -279,13 +275,11 @@
                 </div>
 
                 <div class="calendar-grid-header">
-                    <div class="day-label sun">일</div>
                     <div class="day-label">월</div>
                     <div class="day-label">화</div>
                     <div class="day-label">수</div>
                     <div class="day-label">목</div>
                     <div class="day-label">금</div>
-                    <div class="day-label sat">토</div>
                 </div>
                 <div class="calendar-grid-body" id="calendarGridBody"></div>
             </section>

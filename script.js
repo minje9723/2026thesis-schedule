@@ -54,6 +54,14 @@ function getEndTime30Min(startTimeStr) {
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
+// 캘린더용 교수님 성(Initial) 추출 (김, 이, 권, 한, 정, 외1, 외2)
+function getProfInitial(pName) {
+    if (pName.includes('외부 1') || pName === '외1') return '외1';
+    if (pName.includes('외부 2') || pName === '외2') return '외2';
+    const clean = pName.replace(' 교수님', '').trim();
+    return clean.charAt(0);
+}
+
 // 10 Presenters
 const DEFAULT_PRESENTERS = [
     // 1. 박사졸업발표 (김민제: 내부 3 + 외부 2 = 총 5인)
@@ -410,21 +418,39 @@ function renderProfCalendarHero() {
     document.getElementById('btnProfNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
     document.getElementById('btnProfDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
-    const firstDay = new Date(year, month - 1, 1).getDay();
+    const firstDate = new Date(year, month - 1, 1);
+    const firstDayOfWeek = firstDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
     const daysInMonth = new Date(year, month, 0).getDate();
     const prevMonthDays = new Date(year, month - 1, 0).getDate();
 
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const dNum = prevMonthDays - i;
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${dNum}</span></div>`;
-        grid.appendChild(cell);
+    // 5-Day Weekday Grid (월=0, 화=1, 수=2, 목=3, 금=4). 주말(토, 일) 완전 제외!
+    let leadingPadding = 0;
+    if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
+        leadingPadding = firstDayOfWeek - 1;
     }
 
+    // Previous month padding cells (weekdays only)
+    if (leadingPadding > 0) {
+        for (let p = leadingPadding - 1; p >= 0; p--) {
+            const pDay = prevMonthDays - p;
+            const cell = document.createElement('div');
+            cell.className = 'cal-day-cell other-month';
+            cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${pDay}</span></div>`;
+            grid.appendChild(cell);
+        }
+    }
+
+    let renderedCount = leadingPadding;
+
+    // Current month weekdays
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayOfWeek = new Date(year, month - 1, d).getDay();
+
+        // 주말(토요일=6, 일요일=0) 삭제!
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+        renderedCount++;
 
         let availableProfs = getProfessorsAvailableOnDate(dateStr);
         if (filter !== 'all') {
@@ -435,59 +461,45 @@ function renderProfCalendarHero() {
             p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
         );
 
-        let studentGoldenCount = 0;
-        appState.presenters.forEach(p => {
-            if (countStudentGoldenSlotsOnDate(p, dateStr) > 0) studentGoldenCount++;
-        });
-
         const cell = document.createElement('div');
         let classes = 'cal-day-cell prof-cal-cell';
-        if (dayOfWeek === 0) classes += ' is-sun';
-        if (dayOfWeek === 6) classes += ' is-sat';
         if (confirmedHere.length > 0) classes += ' has-confirmed';
         cell.className = classes;
 
+        // "교수 n인 가능" 문구 완전 제거! 확정된 일정만 배지로 표시
         let badgeHtml = '';
         if (confirmedHere.length > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">${confirmedHere.length}명 확정</span>`;
-        } else if (availableProfs.length >= 4) {
-            badgeHtml = `<span class="cal-day-badge badge-golden">교수 ${availableProfs.length}인 가능</span>`;
-        } else if (availableProfs.length > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-majority">교수 ${availableProfs.length}인</span>`;
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
         }
 
-        let chipsHtml = '';
+        let contentHtml = '';
 
-        confirmedHere.forEach(item => {
-            const end = getEndTime30Min(item.confirmedSchedule.time);
-            chipsHtml += `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time}~${end} 심사 확정">
-                    ⭐ ${item.name} (${item.confirmedSchedule.time}~${end})
-                </div>
-            `;
-        });
-
-        availableProfs.slice(0, 3).forEach(pName => {
-            const isExternal = pName.includes('외부');
-            const shortName = pName.replace(' 교수님', '');
-            chipsHtml += `
-                <div class="cal-slot-chip ${isExternal ? 'prof-chip-ext' : 'prof-chip-int'}">
-                    <span class="chip-mini-dot"></span>${shortName}
-                </div>
-            `;
-        });
-
-        if (availableProfs.length > 3) {
-            chipsHtml += `<div class="cal-slot-chip" style="font-size:0.68rem; color:#64748b;">외 ${availableProfs.length - 3}인 가능</div>`;
+        // 확정된 발표자가 있는 경우 간결하게 표시
+        if (confirmedHere.length > 0) {
+            confirmedHere.forEach(item => {
+                contentHtml += `
+                    <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
+                        ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+                    </div>
+                `;
+            });
         }
 
-        let footerText = '';
+        // 가능 교수님 성함은 성(Initial)만 표기! (김, 이, 권, 한, 정, 외1, 외2)
+        // "교수 n인 가능" 및 "외 n인" 문구 전면 제거
         if (availableProfs.length > 0) {
-            footerText = studentGoldenCount > 0
-                ? `<span style="color:#059669; font-weight:600;">발표 매칭 ${studentGoldenCount}명 가능</span>`
-                : `<span style="color:#64748b;">교수님 일정 있음</span>`;
-        } else {
-            footerText = `<span style="color:#cbd5e1;">일정 없음</span>`;
+            contentHtml += `<div class="cal-prof-initials-wrap">`;
+            availableProfs.forEach(pName => {
+                const isExt = pName.includes('외부');
+                const initial = getProfInitial(pName);
+                contentHtml += `
+                    <span class="prof-initial-badge ${isExt ? 'is-ext' : 'is-int'}" 
+                          title="${pName} 참석 가능">
+                        ${initial}
+                    </span>
+                `;
+            });
+            contentHtml += `</div>`;
         }
 
         cell.innerHTML = `
@@ -495,8 +507,7 @@ function renderProfCalendarHero() {
                 <span class="cal-day-num">${d}</span>
                 ${badgeHtml}
             </div>
-            <div class="cal-day-content">${chipsHtml}</div>
-            <div class="cal-day-footer">${footerText}</div>
+            <div class="cal-day-content">${contentHtml}</div>
         `;
 
         cell.addEventListener('click', () => {
@@ -506,12 +517,12 @@ function renderProfCalendarHero() {
         grid.appendChild(cell);
     }
 
-    const totalRendered = firstDay + daysInMonth;
-    const remaining = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
-    for (let j = 1; j <= remaining; j++) {
+    // 5열 채우기용 다음 달 평일 패딩
+    const trailingPadding = (5 - (renderedCount % 5)) % 5;
+    for (let t = 1; t <= trailingPadding; t++) {
         const cell = document.createElement('div');
         cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${j}</span></div>`;
+        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${t}</span></div>`;
         grid.appendChild(cell);
     }
 }
@@ -1023,47 +1034,62 @@ function renderMonthlyCalendar() {
     const grid = document.getElementById('calendarGridBody');
     grid.innerHTML = '';
 
-    const firstDay = new Date(year, month - 1, 1).getDay();
+    const firstDate = new Date(year, month - 1, 1);
+    const firstDayOfWeek = firstDate.getDay();
     const daysInMonth = new Date(year, month, 0).getDate();
     const prevMonthDays = new Date(year, month - 1, 0).getDate();
 
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const dNum = prevMonthDays - i;
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${dNum}</span></div>`;
-        grid.appendChild(cell);
+    // 5-Day Weekday Grid (월~금). 주말(토, 일) 제외!
+    let leadingPadding = 0;
+    if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
+        leadingPadding = firstDayOfWeek - 1;
     }
+
+    if (leadingPadding > 0) {
+        for (let p = leadingPadding - 1; p >= 0; p--) {
+            const pDay = prevMonthDays - p;
+            const cell = document.createElement('div');
+            cell.className = 'cal-day-cell other-month';
+            cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${pDay}</span></div>`;
+            grid.appendChild(cell);
+        }
+    }
+
+    let renderedCount = leadingPadding;
 
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayOfWeek = new Date(year, month - 1, d).getDay();
+
+        // 주말(토, 일) 삭제
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+        renderedCount++;
+
         const goldenCount = countStudentGoldenSlotsOnDate(presenter, dateStr);
         const isConfirmed = presenter.confirmedSchedule && presenter.confirmedSchedule.date === dateStr;
 
         const cell = document.createElement('div');
         let classes = 'cal-day-cell';
-        if (dayOfWeek === 0) classes += ' is-sun';
-        if (dayOfWeek === 6) classes += ' is-sat';
         if (isConfirmed) classes += ' confirmed-day';
         cell.className = classes;
 
         let badgeHtml = '';
         if (isConfirmed) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">30분 확정</span>`;
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
         } else if (goldenCount > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능 ${goldenCount}건</span>`;
+            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
         }
 
         let chipsHtml = '';
         if (isConfirmed) {
             const end = getEndTime30Min(presenter.confirmedSchedule.time);
-            chipsHtml += `<div class="cal-slot-chip confirmed-chip">⭐ ${presenter.confirmedSchedule.time}~${end} 심사 확정</div>`;
+            chipsHtml += `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${presenter.confirmedSchedule.time}~${end} 확정</div>`;
         } else if (goldenCount > 0) {
             TIME_SLOTS.forEach(time => {
                 if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch && chipsHtml === '') {
                     const end = getEndTime30Min(time);
-                    chipsHtml += `<div class="cal-slot-chip golden">✓ ${time}~${end} 전원 일치</div>`;
+                    chipsHtml += `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${time}~${end} 가능</div>`;
                 }
             });
         }
@@ -1074,9 +1100,6 @@ function renderMonthlyCalendar() {
                 ${badgeHtml}
             </div>
             <div class="cal-day-content">${chipsHtml}</div>
-            <div class="cal-day-footer">
-                ${goldenCount > 0 ? `가능 슬롯 ${goldenCount}개` : '<span style="color:#cbd5e1;">가능 일정 없음</span>'}
-            </div>
         `;
 
         cell.addEventListener('click', () => {
@@ -1087,12 +1110,12 @@ function renderMonthlyCalendar() {
         grid.appendChild(cell);
     }
 
-    const totalRendered = firstDay + daysInMonth;
-    const remaining = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
-    for (let j = 1; j <= remaining; j++) {
+    // 5열 패딩 완료
+    const trailingPadding = (5 - (renderedCount % 5)) % 5;
+    for (let t = 1; t <= trailingPadding; t++) {
         const cell = document.createElement('div');
         cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${j}</span></div>`;
+        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${t}</span></div>`;
         grid.appendChild(cell);
     }
 }

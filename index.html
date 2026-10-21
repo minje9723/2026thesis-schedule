@@ -1,62 +1,409 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumina - Premium Tech</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <title>대학원 학위논문 심사 일정 조율 시스템 (2026.11 ~ 12)</title>
+    <!-- Pretendard Web Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">LUMINA</div>
-        <div class="nav-links">
-            <a href="#products">Products</a>
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-        </div>
-        <button class="cta-button">Pre-order Now</button>
-    </nav>
-
-    <main>
-        <section class="hero">
-            <div class="hero-content">
-                <div class="badge">New Arrival</div>
-                <h1>Experience the <span class="gradient-text">Future</span></h1>
-                <p>Unleash creativity with the next generation of smart technology. Designed for visionaries.</p>
-                <div class="hero-buttons">
-                    <button class="primary-btn">Explore Series X</button>
-                    <button class="secondary-btn">Watch Video</button>
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="brand-area">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">대학원 학위논문 심사 일정 조율</h1>
+                    <p class="brand-subtitle">2026년 11월 ~ 12월 학위청구논문 발표 및 심사 일정 조율 플랫폼</p>
                 </div>
             </div>
-            <div class="hero-visual">
-                <div class="glowing-orb"></div>
-                <div class="glass-card">
-                    <div class="card-content">
-                        <h3>Series X</h3>
-                        <p>Ultra Performance</p>
+
+            <div class="header-actions">
+                <div class="presenter-selector-box">
+                    <label for="currentPresenterSelect">선택된 발표자:</label>
+                    <select id="currentPresenterSelect" class="styled-select">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <button id="btnQuickInput" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    일정 입력하기
+                </button>
+                <button id="btnNewPresenter" class="btn btn-secondary">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    발표자 등록
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container main-layout">
+        <!-- Sub Bar: Presenter Info Card & Summary Stats -->
+        <section class="presenter-banner" id="presenterBanner">
+            <div class="banner-main">
+                <div class="badge-wrapper">
+                    <span class="degree-badge" id="bannerDegree">석사과정</span>
+                    <span class="dept-badge" id="bannerDept">컴퓨터인공지능학과</span>
+                    <span class="status-badge" id="bannerStatus">조율 진행중</span>
+                </div>
+                <h2 class="thesis-title" id="bannerThesis">엣지 디바이스 환경에서의 고효율 경량 딥러닝 모델 추론 가속 연구</h2>
+                <div class="meta-row">
+                    <span class="meta-item">
+                        <strong>발표자:</strong> <span id="bannerPresenterName">김민우 연구원</span>
+                    </span>
+                    <span class="meta-item">
+                        <strong>예상 소요시간:</strong> <span id="bannerDuration">60분</span>
+                    </span>
+                    <span class="meta-item">
+                        <strong>희망 장소:</strong> <span id="bannerLocation">공학관 401호 (온·오프라인 병행)</span>
+                    </span>
+                    <span class="meta-item">
+                        <strong>심사위원단:</strong> <span id="bannerCommitteeCount">총 3명 (전원 입력 완료 2명)</span>
+                    </span>
+                </div>
+            </div>
+            <div class="banner-committee" id="bannerCommitteeTags">
+                <!-- Badges for reviewers -->
+            </div>
+        </section>
+
+        <!-- View Navigation Tabs & Filter Bar -->
+        <div class="view-controls">
+            <div class="view-tabs">
+                <button class="tab-btn active" data-view="month">
+                    <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    월간 캘린더
+                </button>
+                <button class="tab-btn" data-view="week">
+                    <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="4" x2="8" y2="22"/><line x1="16" y1="4" x2="16" y2="22"/></svg>
+                    주차별 타임테이블
+                </button>
+                <button class="tab-btn" data-view="day">
+                    <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    일자별 상세 조율
+                </button>
+                <button class="tab-btn" data-view="manage">
+                    <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    발표자 및 심사위원 관리
+                </button>
+                <button class="tab-btn" data-view="recommend">
+                    <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    공통 가능 시간 (최적 추천)
+                </button>
+            </div>
+
+            <div class="period-navigator" id="periodNav">
+                <button id="btnPrevPeriod" class="icon-nav-btn" title="이전">&lt;</button>
+                <span id="periodLabel" class="period-label">2026년 11월</span>
+                <button id="btnNextPeriod" class="icon-nav-btn" title="다음">&gt;</button>
+                <div class="quick-month-toggle">
+                    <button class="btn-chip active" id="chipNov">11월</button>
+                    <button class="btn-chip" id="chipDec">12월</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: MONTHLY CALENDAR -->
+        <section id="viewMonth" class="view-panel active">
+            <div class="calendar-legend">
+                <div class="legend-item"><span class="legend-dot golden"></span> 전원 가능 (골든 슬롯)</div>
+                <div class="legend-item"><span class="legend-dot majority"></span> 과반 이상 가능</div>
+                <div class="legend-item"><span class="legend-dot partial"></span> 일부 가능</div>
+                <div class="legend-item"><span class="legend-dot confirmed"></span> 심사일 확정</div>
+                <span class="legend-tip">💡 날짜를 클릭하면 해당 일자의 시간대별 상세 조율 화면으로 바로 이동합니다.</span>
+            </div>
+
+            <div class="calendar-grid-header">
+                <div class="day-label sun">일</div>
+                <div class="day-label">월</div>
+                <div class="day-label">화</div>
+                <div class="day-label">수</div>
+                <div class="day-label">목</div>
+                <div class="day-label">금</div>
+                <div class="day-label sat">토</div>
+            </div>
+            <div class="calendar-grid-body" id="calendarGridBody">
+                <!-- Generated by JS -->
+            </div>
+        </section>
+
+        <!-- VIEW 2: WEEKLY TIMETABLE -->
+        <section id="viewWeek" class="view-panel">
+            <div class="week-toolbar">
+                <div class="week-selector-wrapper">
+                    <label for="weekSelect">주차 선택:</label>
+                    <select id="weekSelect" class="styled-select">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="time-range-hint">
+                    운영 시간: <strong>오전 09:00 ~ 오후 19:00</strong> (1시간 단위 조율)
+                </div>
+                <div class="week-filter-status">
+                    <label><input type="checkbox" id="chkOnlyWeekdays" checked> 주말 숨기기 (월~금만 보기)</label>
+                </div>
+            </div>
+
+            <div class="weekly-matrix-container">
+                <div class="weekly-matrix" id="weeklyMatrix">
+                    <!-- Generated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: DAILY DETAIL & DIRECT ENTRY -->
+        <section id="viewDay" class="view-panel">
+            <div class="day-header-bar">
+                <div class="day-date-picker">
+                    <button id="btnPrevDay" class="icon-nav-btn">&lt;</button>
+                    <h3 id="currentDayTitle">2026년 11월 18일 (수요일)</h3>
+                    <button id="btnNextDay" class="icon-nav-btn">&gt;</button>
+                    <input type="date" id="directDatePicker" min="2026-11-01" max="2026-12-31" value="2026-11-18" class="styled-date-input">
+                </div>
+                <div class="day-actions">
+                    <button id="btnConfirmSlot" class="btn btn-success">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        이 날짜로 심사 최종 확정하기
+                    </button>
+                </div>
+            </div>
+
+            <div class="daily-matrix-container">
+                <div class="daily-matrix" id="dailyMatrix">
+                    <!-- Daily hour-by-hour comparison grid for Presenter + All Committee members -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: PRESENTER & COMMITTEE MANAGEMENT -->
+        <section id="viewManage" class="view-panel">
+            <div class="panel-header-row">
+                <div>
+                    <h3>발표자 및 심사위원 목록</h3>
+                    <p class="section-desc">발표자를 새로 등록하거나, 심사위원장 및 심사위원 정보를 편집할 수 있습니다.</p>
+                </div>
+                <div class="manage-btn-group">
+                    <button id="btnResetSample" class="btn btn-outline" title="기본 데모 데이터로 재설정">
+                        <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        예시 데이터 복원
+                    </button>
+                    <button id="btnAddNewPresenterTab" class="btn btn-primary">
+                        + 새 발표자 등록
+                    </button>
+                </div>
+            </div>
+
+            <div class="presenter-cards-grid" id="presenterCardsGrid">
+                <!-- Cards for each presenter with edit/delete & reviewers list -->
+            </div>
+        </section>
+
+        <!-- VIEW 5: RECOMMENDATIONS & FINAL DEFENSE SCHEDULE -->
+        <section id="viewRecommend" class="view-panel">
+            <div class="panel-header-row">
+                <div>
+                    <h3>심사위원 전원 가능 일시 (추천 일정)</h3>
+                    <p class="section-desc">발표자와 모든 심사위원의 일정이 일치하는 골든 타임을 우선순위별로 분석했습니다.</p>
+                </div>
+                <button id="btnCopyAnnouncement" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    심사 조율 공지문 복사 (이메일/카카오톡)
+                </button>
+            </div>
+
+            <div class="recommendations-container" id="recommendationsList">
+                <!-- Populated dynamically -->
+            </div>
+        </section>
+    </div>
+
+    <!-- MODAL 1: ADD / EDIT PRESENTER & COMMITTEE -->
+    <div class="modal-backdrop" id="modalPresenter">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3 id="modalPresenterTitle">발표자 및 심사위원 정보 등록</h3>
+                <button class="modal-close" data-close="modalPresenter">&times;</button>
+            </div>
+            <form id="formPresenter" class="modal-body">
+                <input type="hidden" id="editPresenterId" value="">
+                
+                <h4 class="form-section-title">1. 발표자(대학원생) 정보</h4>
+                <div class="form-row grid-3">
+                    <div class="form-group">
+                        <label for="inputPresenterName">발표자 성명 *</label>
+                        <input type="text" id="inputPresenterName" required placeholder="예: 김민우" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="inputDegree">학위과정 *</label>
+                        <select id="inputDegree" class="form-control">
+                            <option value="석사">석사학위 과정</option>
+                            <option value="박사">박사학위 과정</option>
+                            <option value="석박통합">석·박사통합 과정</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputDepartment">소속 학과 / 연구실 *</label>
+                        <input type="text" id="inputDepartment" required placeholder="예: 컴퓨터인공지능학과" class="form-control">
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <section id="features" class="features">
-            <div class="feature-card">
-                <h3>Speed</h3>
-                <p>Lightning fast processing.</p>
+                <div class="form-row grid-2">
+                    <div class="form-group">
+                        <label for="inputThesisTitle">논문 제목 *</label>
+                        <input type="text" id="inputThesisTitle" required placeholder="학위청구논문 가제목 또는 확정 제목" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="inputDuration">발표 및 질의응답 소요시간</label>
+                        <select id="inputDuration" class="form-control">
+                            <option value="60">60분 (석사 일반)</option>
+                            <option value="90">90분</option>
+                            <option value="120">120분 (박사 일반)</option>
+                            <option value="150">150분</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="inputLocation">희망 심사 장소</label>
+                    <input type="text" id="inputLocation" placeholder="예: 공학관 401호 세미나실 또는 Zoom 화상 회의" class="form-control">
+                </div>
+
+                <hr class="divider">
+
+                <div class="reviewer-header-row">
+                    <div>
+                        <h4 class="form-section-title">2. 심사위원단 구성 (심사위원장 / 지도교수 / 심사위원)</h4>
+                        <p class="form-hint">석사과정은 통상 3인, 박사과정은 5인의 심사위원으로 구성됩니다.</p>
+                    </div>
+                    <button type="button" id="btnAddReviewerRow" class="btn btn-sm btn-secondary">+ 심사위원 추가</button>
+                </div>
+
+                <div class="reviewer-rows-container" id="reviewersInputList">
+                    <!-- Dynamic reviewer rows -->
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" data-close="modalPresenter">취소</button>
+                    <button type="submit" class="btn btn-primary">저장하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: QUICK SCHEDULE AVAILABILITY ENTRY -->
+    <div class="modal-backdrop" id="modalAvailability">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalAvailTitle">가능 일정 입력 (시간표 체크)</h3>
+                    <p class="modal-subtitle">클릭하거나 드래그하여 참석 가능한 시간대를 선택해주세요.</p>
+                </div>
+                <button class="modal-close" data-close="modalAvailability">&times;</button>
             </div>
-            <div class="feature-card">
-                <h3>Design</h3>
-                <p>Seamless glass body.</p>
+            <div class="modal-body">
+                <div class="avail-user-switch-bar">
+                    <div class="avail-target-select">
+                        <label for="availTargetSelect"><strong>입력 대상자:</strong></label>
+                        <select id="availTargetSelect" class="styled-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="avail-quick-buttons">
+                        <button type="button" class="btn btn-sm btn-outline" id="btnSelectAllSlots">전체 가능 선택</button>
+                        <button type="button" class="btn btn-sm btn-outline" id="btnClearTargetSlots">선택 초기화</button>
+                    </div>
+                </div>
+
+                <div class="month-subnav-modal">
+                    <button type="button" class="btn-chip active" id="modalChipNov">11월 일정표</button>
+                    <button type="button" class="btn-chip" id="modalChipDec">12월 일정표</button>
+                    <span class="modal-info-text">※ 평일(월~금) 09:00 ~ 19:00 기준</span>
+                </div>
+
+                <div class="avail-grid-scroll">
+                    <div class="avail-table" id="availTable">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="avail-legend-bar">
+                    <div class="legend-chip"><span class="box-sample avail"></span> 가능 (Available)</div>
+                    <div class="legend-chip"><span class="box-sample unavail"></span> 불가 (Unavailable)</div>
+                    <div class="save-status-indicator" id="autoSaveIndicator">입력 즉시 자동 저장됩니다.</div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>Power</h3>
-                <p>All day battery life.</p>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close="modalAvailability">입력 완료</button>
             </div>
-        </section>
-    </main>
+        </div>
+    </div>
+
+    <!-- MODAL 3: CONFIRM FINAL DEFENSE SCHEDULE -->
+    <div class="modal-backdrop" id="modalConfirmDefense">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>심사 일정 최종 확정</h3>
+                <button class="modal-close" data-close="modalConfirmDefense">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-lead-text">선택한 일시로 학위논문 심사 일정을 확정하시겠습니까?</p>
+                <div class="confirm-info-box">
+                    <div class="confirm-info-row">
+                        <span>발표자:</span>
+                        <strong id="confirmModalPresenter">-</strong>
+                    </div>
+                    <div class="confirm-info-row">
+                        <span>확정 일시:</span>
+                        <strong id="confirmModalDateTime" class="highlight-date">-</strong>
+                    </div>
+                    <div class="confirm-info-row">
+                        <span>소요 시간:</span>
+                        <span id="confirmModalDuration">-</span>
+                    </div>
+                    <div class="confirm-info-row">
+                        <span>장소:</span>
+                        <input type="text" id="confirmModalLocation" class="form-control" placeholder="장소 입력 (예: 공학관 301호)">
+                    </div>
+                </div>
+                <p class="modal-note">확정 후에도 언제든지 다른 시간으로 변경하거나 확정을 취소할 수 있습니다.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close="modalConfirmDefense">취소</button>
+                <button type="button" id="btnCancelConfirmation" class="btn btn-danger" style="display:none;">확정 취소</button>
+                <button type="button" id="btnSaveConfirmation" class="btn btn-success">최종 확정 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ANNOUNCEMENT COPY / EXPORT -->
+    <div class="modal-backdrop" id="modalNotice">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3>학위논문 심사 일정 공지문</h3>
+                <button class="modal-close" data-close="modalNotice">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-subtitle">심사위원 교수님들 및 학과 사무실 공유용 안내문 형식입니다.</p>
+                <textarea id="noticeTextarea" class="notice-textarea" rows="14" readonly></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-close="modalNotice">닫기</button>
+                <button type="button" id="btnDoCopyNotice" class="btn btn-primary">
+                    클립보드에 복사하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
     <script src="script.js"></script>
 </body>

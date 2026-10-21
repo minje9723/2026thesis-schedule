@@ -844,7 +844,7 @@ function renderProfCalendarHero() {
     document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
     if (pickProf) {
         document.getElementById('profPickText').innerHTML =
-            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꾸고, <strong>날짜 숫자</strong>를 누르면 하루 전체를 한 번에 선택/해제합니다.`;
+            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꾸고, <strong>날짜 칸</strong>을 누르면 하루 전체를 한 번에 선택/해제합니다.`;
         document.getElementById('btnProfPickAll').textContent =
             isProfMonthFull(pickProf, month) ? `${month}월 전체 해제` : `${month}월 전체 가능`;
     }
@@ -858,12 +858,10 @@ function renderProfCalendarHero() {
             : '';
 
         let contentHtml = '';
-        let dayNumHtml = `<span class="cal-day-num">${dayNum}</span>`;
         if (pickProf) {
-            cell.className = 'cal-day-cell prof-cal-cell pick-mode';
             const isFullDay = PERIODS.every(p => isProfAvailable(pickProf, `${dateStr} ${p.key}`));
-            dayNumHtml = `<button type="button" class="cal-day-num pick-day-btn ${isFullDay ? 'is-full' : ''}"
-                                  title="${isFullDay ? '오전·오후 한꺼번에 해제' : '오전·오후 한꺼번에 선택'}">${dayNum}</button>`;
+            cell.className = `cal-day-cell prof-cal-cell pick-mode ${isFullDay ? 'is-full' : ''}`;
+            cell.title = isFullDay ? '누르면 오전·오후 한꺼번에 해제' : '누르면 오전·오후 한꺼번에 선택';
             contentHtml = `<div class="pick-halves">${PERIODS.map(p => {
                 const on = isProfAvailable(pickProf, `${dateStr} ${p.key}`);
                 return `<button type="button" class="pick-half ${on ? 'is-on' : ''}" data-period="${p.key}"
@@ -891,19 +889,21 @@ function renderProfCalendarHero() {
 
         cell.innerHTML = `
             <div class="cal-day-header">
-                ${dayNumHtml}
+                <span class="cal-day-num">${dayNum}</span>
                 ${badgeHtml}
             </div>
             <div class="cal-day-content">${contentHtml}</div>
         `;
 
         if (pickProf) {
-            cell.querySelector('.pick-day-btn').addEventListener('click', () => {
+            // 날짜 칸 = 하루 전체 선택/해제, [오전]/[오후] = 해당 칸만 (칸 클릭으로 번지지 않게 막음)
+            cell.addEventListener('click', () => {
                 toggleProfWholeDay(pickProf, dateStr);
                 renderAll();
             });
             cell.querySelectorAll('.pick-half').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     toggleProfAvailability(pickProf, `${dateStr} ${btn.dataset.period}`);
                     renderAll();
                 });

@@ -13,21 +13,49 @@
 const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v7';
 const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v7';
 
-// 심사위원 교수님 목록 (화면의 필터·선택 목록은 모두 여기서 만들어짐)
-const PROFESSORS = {
+// 기본 심사위원 교수님 목록
+const BASE_PROFESSORS = {
     internal: ["김수철 교수님", "이상옥 교수님", "권희홍 교수님", "한민수 교수님", "정용재 교수님"],
     external: ["정광용 교수님", "조남철 교수님", "박정혜 교수님", "이광웅 교수님"]
 };
 
+// 실제로 쓰는 목록 = 기본 목록 + 발표자가 심사위원단에 직접 입력한 심사위원 (refreshProfessorPool에서 갱신)
+// 화면의 교수님 버튼·선택 목록은 모두 여기서 만들어짐
+const PROFESSORS = { internal: [...BASE_PROFESSORS.internal], external: [...BASE_PROFESSORS.external] };
 const ALL_PROF_NAMES = [...PROFESSORS.internal, ...PROFESSORS.external];
 
 // 일단 숨겨 둔 화면 요소 (다시 보이려면 true)
 const SHOW_ROSTER_COORDINATION_BUTTON = false;   // 발표자 카드의 [일정 조율/확정 →] 버튼
 const SHOW_HEADER_PRESENTER_SELECT = false;      // 상단바의 '발표자 선택'
+const SHOW_HEADER_HOME_BUTTON = false;           // 상단바의 [홈 (교수님 캘린더)] 버튼
 
 const SCHEDULE_YEAR = 2026;
 const SCHEDULE_MONTHS = [11, 12];
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+// 기본 목록 + 발표자가 심사위원단에 직접 입력한 심사위원으로 교수님 명단을 다시 만듦
+// (아무 발표자의 심사위원단에도 없으면 명단에서 자동으로 빠짐)
+function refreshProfessorPool() {
+    const known = new Set([...BASE_PROFESSORS.internal, ...BASE_PROFESSORS.external]);
+    const added = { internal: [], external: [] };
+    appState.presenters.forEach(p => (p.reviewers || []).forEach(r => {
+        if (!r.name || known.has(r.name)) return;
+        known.add(r.name);
+        added[r.type === 'external' ? 'external' : 'internal'].push(r.name);
+    }));
+    PROFESSORS.internal = [...BASE_PROFESSORS.internal, ...added.internal];
+    PROFESSORS.external = [...BASE_PROFESSORS.external, ...added.external];
+    ALL_PROF_NAMES.splice(0, ALL_PROF_NAMES.length, ...PROFESSORS.internal, ...PROFESSORS.external);
+    if (appState.profFilterTarget !== 'all' && !ALL_PROF_NAMES.includes(appState.profFilterTarget)) {
+        appState.profFilterTarget = 'all';
+    }
+}
+
+// 직접 입력한 이름을 다른 심사위원과 같은 형식("홍길동 교수님")으로 정리
+function normalizeProfName(input) {
+    const name = input.replace(/[\/]/g, '').replace(/\s+/g, ' ').trim().replace(/\s*교수님$/, '');
+    return name ? `${name} 교수님` : '';
+}
 
 function getProfType(pName) {
     return PROFESSORS.external.includes(pName) ? 'external' : 'internal';
@@ -380,8 +408,11 @@ function loadState() {
             const savedAvail = JSON.parse(savedProfAvail);
             const defaults = generateDefaultProfAvailability();
             appState.profAvailability = {};
+            Object.keys(savedAvail).forEach(pName => {
+                appState.profAvailability[pName] = toPeriodSlots(savedAvail[pName]);
+            });
             ALL_PROF_NAMES.forEach(pName => {
-                appState.profAvailability[pName] = savedAvail[pName] ? toPeriodSlots(savedAvail[pName]) : (defaults[pName] || []);
+                if (!appState.profAvailability[pName]) appState.profAvailability[pName] = defaults[pName] || [];
             });
         } else {
             resetToSampleData();
@@ -532,14 +563,15 @@ function applyPresentersSnapshot(snapshot) {
 }
 
 function applyProfAvailSnapshot(snapshot) {
-    // 현재 명단에 없는 교수님 문서(이름 변경 전 문서 등)는 무시
+    // 모든 문서를 보관하고, 화면에는 현재 명단(ALL_PROF_NAMES)에 있는 교수님만 표시
+    // (직접 입력한 심사위원은 발표자 정보가 도착한 뒤 명단에 추가되므로 미리 걸러내지 않음)
     const next = {};
     const legacyDocs = [];
     ALL_PROF_NAMES.forEach(pName => { next[pName] = []; });
     snapshot.docs.forEach(doc => {
-        if (!ALL_PROF_NAMES.includes(doc.id)) return;
         const raw = doc.data().slots || [];
         next[doc.id] = toPeriodSlots(raw);
+        if (!ALL_PROF_NAMES.includes(doc.id)) return;
         const legacy = raw.filter(slot => toPeriodSlot(slot) !== slot);
         if (legacy.length) legacyDocs.push({ name: doc.id, legacy, converted: next[doc.id] });
     });
@@ -1646,10 +1678,11 @@ function renderCommitteeRows(category, existingReviewers = []) {
     const subtitle = document.getElementById('modalPresenterSubtitle');
     const internalList = PROFESSORS.internal.map(getProfShortName).join(', ');
     const externalList = PROFESSORS.external.map(getProfShortName).join(', ');
+    const customReviewerHint = `<br>목록에 없는 심사위원은 <strong>[+ 목록에 없는 심사위원 직접 입력]</strong>으로 추가하세요. 저장하면 교수님 목록에도 추가됩니다.`;
 
     if (isPhdGrad) {
         subtitle.textContent = "규정: 박사졸업발표는 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인) 구성입니다.";
-        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (${internalList}) + <span class="badge-tag-external">외부 2인</span> (${externalList} 중 2인) 총 5인을 지정하세요.`;
+        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (${internalList}) + <span class="badge-tag-external">외부 2인</span> (${externalList} 중 2인) 총 5인을 지정하세요.${customReviewerHint}`;
 
         const defaultRoles = [
             { role: "심사위원장", type: "internal" },
@@ -1667,7 +1700,7 @@ function renderCommitteeRows(category, existingReviewers = []) {
     } else {
         // 석사졸업발표·박사주제발표: 내부/외부 구분 없이 자유 구성 (내부 3인 규정 해제)
         subtitle.textContent = "석사졸업발표 및 박사주제발표는 내부·외부 심사위원을 자유롭게 구성할 수 있습니다.";
-        hint.innerHTML = `<span class="badge-tag-internal">내부</span> (${internalList}) · <span class="badge-tag-external">외부</span> (${externalList}) 구분 없이 자유롭게 지정하세요.`;
+        hint.innerHTML = `<span class="badge-tag-internal">내부</span> (${internalList}) · <span class="badge-tag-external">외부</span> (${externalList}) 구분 없이 자유롭게 지정하세요.${customReviewerHint}`;
 
         const rows = existingReviewers.length > 0
             ? existingReviewers.map(r => ({ role: r.role, name: r.name }))
@@ -1675,6 +1708,14 @@ function renderCommitteeRows(category, existingReviewers = []) {
 
         rows.forEach(r => addProfessorSelectRow(r.role, 'any', r.name));
     }
+}
+
+function roleSelectHtml(role) {
+    return `
+        <select class="form-control r-role" style="font-size:0.8rem;">
+            ${['심사위원장', '지도교수', '심사위원'].map(r => `<option value="${r}" ${role === r ? 'selected' : ''}>${r}</option>`).join('')}
+        </select>
+    `;
 }
 
 // type: 'internal' | 'external' | 'any' (내부·외부 모두 선택 가능)
@@ -1703,11 +1744,7 @@ function addProfessorSelectRow(role = '심사위원', type = 'internal', selecte
     row.innerHTML = `
         <div style="display:flex; align-items:center; gap:6px;">
             <span class="r-type-badge"></span>
-            <select class="form-control r-role" style="font-size:0.8rem;">
-                <option value="심사위원장" ${role === '심사위원장' ? 'selected' : ''}>심사위원장</option>
-                <option value="지도교수" ${role === '지도교수' ? 'selected' : ''}>지도교수</option>
-                <option value="심사위원" ${role === '심사위원' ? 'selected' : ''}>심사위원</option>
-            </select>
+            ${roleSelectHtml(role)}
         </div>
         <select class="form-control r-name" required>
             ${optionsHtml}
@@ -1737,10 +1774,37 @@ function addProfessorSelectRow(role = '심사위원', type = 'internal', selecte
     list.appendChild(row);
 }
 
+// 목록에 없는 심사위원을 이름과 내부/외부를 직접 입력해 추가하는 행 (저장하면 교수님 명단에도 추가됨)
+function addCustomReviewerRow(role = '심사위원') {
+    const list = document.getElementById('reviewersInputList');
+    const row = document.createElement('div');
+    row.className = 'reviewer-row-item prof-select-row custom-reviewer-row';
+    row.innerHTML = `
+        <div style="display:flex; align-items:center; gap:6px;">
+            <select class="form-control r-custom-type" title="내부/외부">
+                <option value="internal">내부</option>
+                <option value="external">외부</option>
+            </select>
+            ${roleSelectHtml(role)}
+        </div>
+        <input type="text" class="form-control r-custom-name" placeholder="심사위원 이름 직접 입력 (예: 홍길동)" maxlength="20" required>
+        <button type="button" class="btn-remove-row" title="행 삭제">&times;</button>
+    `;
+    row.querySelector('.btn-remove-row').addEventListener('click', () => {
+        row.remove();
+    });
+    list.appendChild(row);
+    row.querySelector('.r-custom-name').focus();
+}
+
 document.getElementById('btnAddReviewerRow').addEventListener('click', () => {
     const cat = document.getElementById('inputCategory').value;
     const type = cat === '박사졸업발표' ? 'external' : 'any';
     addProfessorSelectRow('심사위원', type, '');
+});
+
+document.getElementById('btnAddCustomReviewer').addEventListener('click', () => {
+    addCustomReviewerRow();
 });
 
 document.getElementById('formPresenter').addEventListener('submit', (e) => {
@@ -1755,17 +1819,28 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
     const reviewers = [];
     reviewerRows.forEach((row, idx) => {
         const rRole = row.querySelector('.r-role').value;
-        const nameSelect = row.querySelector('.r-name');
-        const rName = nameSelect.value;
+        const customName = row.querySelector('.r-custom-name');
+        // 직접 입력한 이름이 이미 명단에 있으면 그 심사위원으로 처리 (내부/외부도 기존 값 사용)
+        const rName = customName ? normalizeProfName(customName.value) : row.querySelector('.r-name').value;
+        const rType = customName && !ALL_PROF_NAMES.includes(rName)
+            ? row.querySelector('.r-custom-type').value
+            : getProfType(rName);
         if (rName) {
             reviewers.push({
                 id: `r_${editId}_${idx + 1}`,
                 name: rName,
                 role: rRole,
-                type: getProfType(rName)
+                type: rType
             });
         }
     });
+
+    const names = reviewers.map(r => r.name);
+    const duplicates = [...new Set(names.filter((name, i) => names.indexOf(name) !== i))];
+    if (duplicates.length) {
+        alert(`같은 심사위원이 두 번 들어 있습니다: ${duplicates.map(getProfShortName).join(', ')}`);
+        return;
+    }
 
     const p = appState.presenters.find(x => x.id === editId);
     if (p) {
@@ -1927,6 +2002,8 @@ function switchSubView(subViewName) {
 }
 
 function renderAll() {
+    refreshProfessorPool();
+    renderProfFilterChips();
     updatePresenterSelectorDropdown();
 
     const pageHome = document.getElementById('pageHome');
@@ -1951,6 +2028,7 @@ function renderAll() {
 // Global Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.presenter-selector-box').hidden = !SHOW_HEADER_PRESENTER_SELECT;
+    document.getElementById('btnNavHome').hidden = !SHOW_HEADER_HOME_BUTTON;
     renderProfFilterChips();
     initDataSource();
 

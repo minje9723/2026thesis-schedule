@@ -63,6 +63,11 @@
     padding: 0;
 }
 
+/* hidden 속성은 다른 display 규칙보다 우선 (숨김 처리한 버튼·영역용) */
+[hidden] {
+    display: none !important;
+}
+
 html, body {
     overflow-x: hidden;
     max-width: 100%;
@@ -192,9 +197,6 @@ a {
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.presenter-selector-box[hidden] {
-    display: none;
-}
 
 .presenter-selector-box label {
     font-size: 0.8rem;
@@ -533,9 +535,6 @@ a {
     font-size: 0.85rem;
 }
 
-.prof-pick-banner[hidden] {
-    display: none;
-}
 
 .prof-pick-actions {
     display: flex;
@@ -1885,8 +1884,9 @@ a {
     margin-bottom: 14px;
 }
 
-.form-row.grid-2 { grid-template-columns: 1fr 1fr; }
-.form-row.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+/* minmax(0, 1fr): 선택 목록의 긴 글자 때문에 칸이 넓어져 창 밖으로 넘치지 않도록 */
+.form-row.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.form-row.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .form-group {
     display: flex;
@@ -1911,7 +1911,15 @@ a {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 12px;
+}
+
+.reviewer-add-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .reviewer-row-item {
@@ -1926,7 +1934,31 @@ a {
 }
 
 .prof-select-row {
-    grid-template-columns: 160px 1fr 36px;
+    grid-template-columns: 160px minmax(0, 1fr) 36px;
+}
+
+/* 목록에 없는 심사위원 직접 입력 행: 내부/외부 + 역할 + 이름 입력 */
+.custom-reviewer-row {
+    grid-template-columns: 210px minmax(0, 1fr) 36px;
+    background: #fffbeb;
+    border-style: dashed;
+}
+
+.custom-reviewer-row .r-custom-type {
+    width: 72px;
+    flex: none;
+    font-size: 0.8rem;
+}
+
+/* 휴대폰: 역할(·내부/외부) 한 줄, 이름 + 삭제 한 줄 */
+@media (max-width: 640px) {
+    .prof-select-row,
+    .custom-reviewer-row {
+        grid-template-columns: minmax(0, 1fr) 36px;
+    }
+    .prof-select-row > :first-child {
+        grid-column: 1 / -1;
+    }
 }
 
 .btn-remove-row {

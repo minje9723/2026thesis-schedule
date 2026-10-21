@@ -1394,7 +1394,7 @@ ${reviewerListStr}
 ${scheduleNotice}
 감사합니다.
 
-일정 조율 사이트: https://minje9723.github.io/minshop/
+일정 조율 사이트: https://minje9723.github.io/2026thesis-schedule/
 `;
 
     textarea.value = noticeText;

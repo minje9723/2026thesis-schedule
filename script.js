@@ -35,6 +35,10 @@ const ALL_PROF_NAMES = [
     ...PROFESSORS.external.map(p => p.name)
 ];
 
+function getProfType(pName) {
+    return PROFESSORS.external.some(p => p.name === pName) ? 'external' : 'internal';
+}
+
 const TIME_SLOTS = [
     "09:00", "09:30",
     "10:00", "10:30",
@@ -1007,10 +1011,11 @@ function updateDetailBanner() {
     }
 
     const reviewers = presenter.reviewers || [];
-    const isPhdGrad = presenter.category === '박사졸업발표';
-    document.getElementById('bannerCommitteeCount').textContent = isPhdGrad
-        ? `총 ${reviewers.length}인 (내부 3 + 외부 2)`
-        : `총 ${reviewers.length}인 (내부 3)`;
+    const extCount = reviewers.filter(r => r.type === 'external').length;
+    const intCount = reviewers.length - extCount;
+    document.getElementById('bannerCommitteeCount').textContent = extCount > 0
+        ? `총 ${reviewers.length}인 (내부 ${intCount} + 외부 ${extCount})`
+        : `총 ${reviewers.length}인 (내부 ${intCount})`;
 
     const tagsContainer = document.getElementById('bannerCommitteeTags');
     tagsContainer.innerHTML = `
@@ -1622,7 +1627,6 @@ function renderInteractiveProfAvailTable() {
 function openPresenterModal(presenterToEdit) {
     const modal = document.getElementById('modalPresenter');
     const title = document.getElementById('modalPresenterTitle');
-    const subtitle = document.getElementById('modalPresenterSubtitle');
 
     title.textContent = `${presenterToEdit.name} 심사위원단 및 발표 정보 설정`;
     document.getElementById('editPresenterId').value = presenterToEdit.id;
@@ -1630,11 +1634,6 @@ function openPresenterModal(presenterToEdit) {
     document.getElementById('inputCategory').value = presenterToEdit.category;
     document.getElementById('inputThesisTitle').value = presenterToEdit.thesisTitle || '';
     document.getElementById('inputLocation').value = presenterToEdit.location || '세미나실 1호';
-
-    const isPhdGrad = presenterToEdit.category === '박사졸업발표';
-    subtitle.textContent = isPhdGrad
-        ? "규정: 박사졸업발표는 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인) 구성입니다."
-        : "규정: 석사졸업발표 및 박사주제발표는 내부 심사위원 3인 구성입니다.";
 
     renderCommitteeRows(presenterToEdit.category, presenterToEdit.reviewers);
 
@@ -1652,8 +1651,10 @@ function renderCommitteeRows(category, existingReviewers = []) {
 
     const isPhdGrad = category === '박사졸업발표';
     const hint = document.getElementById('committeeRuleHint');
+    const subtitle = document.getElementById('modalPresenterSubtitle');
 
     if (isPhdGrad) {
+        subtitle.textContent = "규정: 박사졸업발표는 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인) 구성입니다.";
         hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (외부 1~4 중 2인) 총 5인을 지정하세요.`;
 
         const defaultRoles = [
@@ -1670,50 +1671,70 @@ function renderCommitteeRows(category, existingReviewers = []) {
             addProfessorSelectRow(def.role, def.type, currentName);
         });
     } else {
-        hint.innerHTML = `<span class="badge-tag-internal">내부 심사위원 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재)을 지정하세요.`;
+        // 석사졸업발표·박사주제발표: 내부/외부 구분 없이 자유 구성 (내부 3인 규정 해제)
+        subtitle.textContent = "석사졸업발표 및 박사주제발표는 내부·외부 심사위원을 자유롭게 구성할 수 있습니다.";
+        hint.innerHTML = `<span class="badge-tag-internal">내부</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) · <span class="badge-tag-external">외부</span> (외부 1~4) 구분 없이 자유롭게 지정하세요.`;
 
-        const defaultRoles = [
-            { role: "심사위원장", type: "internal" },
-            { role: "지도교수", type: "internal" },
-            { role: "심사위원", type: "internal" }
-        ];
+        const rows = existingReviewers.length > 0
+            ? existingReviewers.map(r => ({ role: r.role, name: r.name }))
+            : ["심사위원장", "지도교수", "심사위원"].map(role => ({ role, name: '' }));
 
-        defaultRoles.forEach((def, idx) => {
-            const current = existingReviewers[idx];
-            const currentName = current ? current.name : '';
-            addProfessorSelectRow(def.role, def.type, currentName);
-        });
+        rows.forEach(r => addProfessorSelectRow(r.role, 'any', r.name));
     }
 }
 
+// type: 'internal' | 'external' | 'any' (내부·외부 모두 선택 가능)
 function addProfessorSelectRow(role = '심사위원', type = 'internal', selectedName = '') {
     const list = document.getElementById('reviewersInputList');
     const row = document.createElement('div');
     row.className = 'reviewer-row-item prof-select-row';
 
-    const pool = type === 'external' ? PROFESSORS.external.map(p => p.name) : PROFESSORS.internal.map(p => p.name);
-    const typeLabel = type === 'external' ? '외부' : '내부';
-    const typeBadgeClass = type === 'external' ? 'badge-tag-external-xs' : 'badge-tag-internal-xs';
+    const toOptions = names => names
+        .map(pName => `<option value="${pName}" ${selectedName === pName ? 'selected' : ''}>${pName}</option>`)
+        .join('');
+    const internalNames = PROFESSORS.internal.map(p => p.name);
+    const externalNames = PROFESSORS.external.map(p => p.name);
 
-    let optionsHtml = `<option value="">-- ${typeLabel} 심사위원 선택 --</option>`;
-    pool.forEach(pName => {
-        optionsHtml += `<option value="${pName}" ${selectedName === pName ? 'selected' : ''}>${pName}</option>`;
-    });
+    let optionsHtml;
+    if (type === 'any') {
+        optionsHtml = `<option value="">-- 내부/외부 심사위원 선택 --</option>`
+            + `<optgroup label="내부 심사위원">${toOptions(internalNames)}</optgroup>`
+            + `<optgroup label="외부 심사위원">${toOptions(externalNames)}</optgroup>`;
+    } else {
+        const typeLabel = type === 'external' ? '외부' : '내부';
+        optionsHtml = `<option value="">-- ${typeLabel} 심사위원 선택 --</option>`
+            + toOptions(type === 'external' ? externalNames : internalNames);
+    }
 
     row.innerHTML = `
         <div style="display:flex; align-items:center; gap:6px;">
-            <span class="${typeBadgeClass}">${typeLabel}</span>
+            <span class="r-type-badge"></span>
             <select class="form-control r-role" style="font-size:0.8rem;">
                 <option value="심사위원장" ${role === '심사위원장' ? 'selected' : ''}>심사위원장</option>
                 <option value="지도교수" ${role === '지도교수' ? 'selected' : ''}>지도교수</option>
                 <option value="심사위원" ${role === '심사위원' ? 'selected' : ''}>심사위원</option>
             </select>
         </div>
-        <select class="form-control r-name" data-type="${type}" required>
+        <select class="form-control r-name" required>
             ${optionsHtml}
         </select>
         <button type="button" class="btn-remove-row" title="행 삭제">&times;</button>
     `;
+
+    const badge = row.querySelector('.r-type-badge');
+    const nameSelect = row.querySelector('.r-name');
+    const updateBadge = () => {
+        if (type === 'any' && !nameSelect.value) {
+            badge.className = 'badge-tag-internal-xs';
+            badge.textContent = '내/외';
+            return;
+        }
+        const badgeType = type === 'any' ? getProfType(nameSelect.value) : type;
+        badge.className = badgeType === 'external' ? 'badge-tag-external-xs' : 'badge-tag-internal-xs';
+        badge.textContent = badgeType === 'external' ? '외부' : '내부';
+    };
+    updateBadge();
+    nameSelect.addEventListener('change', updateBadge);
 
     row.querySelector('.btn-remove-row').addEventListener('click', () => {
         row.remove();
@@ -1724,7 +1745,7 @@ function addProfessorSelectRow(role = '심사위원', type = 'internal', selecte
 
 document.getElementById('btnAddReviewerRow').addEventListener('click', () => {
     const cat = document.getElementById('inputCategory').value;
-    const type = cat === '박사졸업발표' ? 'external' : 'internal';
+    const type = cat === '박사졸업발표' ? 'external' : 'any';
     addProfessorSelectRow('심사위원', type, '');
 });
 
@@ -1742,13 +1763,12 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
         const rRole = row.querySelector('.r-role').value;
         const nameSelect = row.querySelector('.r-name');
         const rName = nameSelect.value;
-        const type = nameSelect.getAttribute('data-type');
         if (rName) {
             reviewers.push({
                 id: `r_${editId}_${idx + 1}`,
                 name: rName,
                 role: rRole,
-                type: type || 'internal'
+                type: getProfType(rName)
             });
         }
     });

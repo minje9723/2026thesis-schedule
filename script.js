@@ -827,7 +827,7 @@ function renderWeekdayCalendar(grid, month, fillDayCell) {
 // ==========================================================================
 
 // 홈 캘린더: '전체'일 때는 날짜를 누르면 오전/오후 현황 표,
-// 교수님 이름을 골랐을 때는 그 교수님의 가능 날짜를 바로 지정(오전·오후 구분 없이 하루 단위)
+// 교수님 이름을 골랐을 때는 날짜마다 [오전]/[오후] 버튼으로 그 교수님의 가능 일정을 바로 지정
 function renderProfCalendarHero() {
     const month = appState.profCalendarMonth;
     const pickProf = appState.profFilterTarget === 'all' ? null : appState.profFilterTarget;
@@ -840,7 +840,9 @@ function renderProfCalendarHero() {
     document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
     if (pickProf) {
         document.getElementById('profPickText').innerHTML =
-            `📅 <strong>${pickProf}</strong> 가능 날짜 선택 중 · 날짜를 누르면 <strong>가능(오전·오후 모두)</strong> / 불가로 바뀝니다.`;
+            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · 날짜의 <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꿉니다.`;
+        document.getElementById('btnProfPickAll').textContent =
+            isProfMonthFull(pickProf, month) ? `${month}월 전체 해제` : `${month}월 전체 가능`;
     }
 
     renderWeekdayCalendar(document.getElementById('profCalendarGrid'), month, (cell, { dateStr, dayNum }) => {
@@ -853,12 +855,12 @@ function renderProfCalendarHero() {
 
         let contentHtml = '';
         if (pickProf) {
-            const onPeriods = PERIODS.filter(p => isProfAvailable(pickProf, `${dateStr} ${p.key}`));
-            const isFull = onPeriods.length === PERIODS.length;
-            cell.className = `cal-day-cell prof-cal-cell pick-mode ${onPeriods.length ? 'is-picked' : ''} ${onPeriods.length && !isFull ? 'is-partial' : ''}`;
-            if (onPeriods.length) {
-                contentHtml = `<div class="pick-state">${isFull ? '✓ 가능' : `${onPeriods[0].label}만 가능`}</div>`;
-            }
+            cell.className = 'cal-day-cell prof-cal-cell pick-mode';
+            contentHtml = `<div class="pick-halves">${PERIODS.map(p => {
+                const on = isProfAvailable(pickProf, `${dateStr} ${p.key}`);
+                return `<button type="button" class="pick-half ${on ? 'is-on' : ''}" data-period="${p.key}"
+                                title="${p.label} ${p.range} · ${on ? '가능 (누르면 해제)' : '누르면 가능'}">${on ? '✓ ' : ''}${p.label}</button>`;
+            }).join('')}</div>`;
         } else {
             const availableProfs = getProfessorsAvailableOnDate(dateStr);
             cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''}`;
@@ -887,24 +889,38 @@ function renderProfCalendarHero() {
             <div class="cal-day-content">${contentHtml}</div>
         `;
 
-        cell.addEventListener('click', () => {
-            if (pickProf) {
-                toggleProfWholeDay(pickProf, dateStr);
-                renderAll();
-            } else {
+        if (pickProf) {
+            cell.querySelectorAll('.pick-half').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    toggleProfAvailability(pickProf, `${dateStr} ${btn.dataset.period}`);
+                    renderAll();
+                });
+            });
+        } else {
+            cell.addEventListener('click', () => {
                 openDateProfDetailModal(dateStr);
-            }
-        });
+            });
+        }
     });
 }
 
-// 교수님 한 분의 하루(오전·오후) 가능 여부 전환: 둘 다 가능이면 해제, 아니면 둘 다 가능으로
-function toggleProfWholeDay(profName, dateStr) {
-    const slots = PERIODS.map(p => `${dateStr} ${p.key}`);
-    const allOn = slots.every(slot => isProfAvailable(profName, slot));
-    slots.forEach(slot => {
-        if (isProfAvailable(profName, slot) === allOn) toggleProfAvailability(profName, slot);
-    });
+// 해당 월 평일의 오전·오후 슬롯 전체
+function getMonthSlots(month) {
+    return getWeekdays(month).flatMap(w => PERIODS.map(p => `${w.dateStr} ${p.key}`));
+}
+
+function isProfMonthFull(profName, month) {
+    return getMonthSlots(month).every(slot => isProfAvailable(profName, slot));
+}
+
+// 해당 월 평일 전체를 오전·오후 모두 가능(또는 전체 해제)으로 설정
+function setProfMonthAvailability(profName, month, available) {
+    const monthSlots = getMonthSlots(month);
+    const current = appState.profAvailability[profName] || [];
+    appState.profAvailability[profName] = available
+        ? [...new Set([...current, ...monthSlots])]
+        : current.filter(slot => !monthSlots.includes(slot));
+    saveState();
 }
 
 // 교수님별 칩 (PROFESSORS 목록으로 생성) - 이름을 누르면 그 교수님의 가능 날짜 선택 모드
@@ -1930,6 +1946,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 교수님 가능 날짜 선택 모드 종료
+    document.getElementById('btnProfPickAll').addEventListener('click', () => {
+        const profName = appState.profFilterTarget;
+        const month = appState.profCalendarMonth;
+        const makeAvailable = !isProfMonthFull(profName, month);
+        setProfMonthAvailability(profName, month, makeAvailable);
+        renderAll();
+        showToast(`${profName}: ${month}월 평일 ${makeAvailable ? '전체 가능으로 설정' : '전체 해제'}했습니다.`);
+    });
     document.getElementById('btnProfPickDone').addEventListener('click', () => {
         appState.profFilterTarget = 'all';
         renderProfFilterChips();

@@ -533,24 +533,45 @@ a {
     display: none;
 }
 
-.prof-cal-cell.pick-mode:hover {
-    border-color: #34d399;
+.prof-pick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
-.prof-cal-cell.is-picked {
-    background: #dcfce7;
-    border-color: #4ade80;
+/* 선택 모드의 날짜 칸: 위 [오전] / 아래 [오후] 버튼 */
+.prof-cal-cell.pick-mode {
+    cursor: default;
 }
 
-.prof-cal-cell.is-partial {
-    background: #f0fdf4;
-    border-style: dashed;
-}
-
-.pick-state {
+.pick-halves {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     margin-top: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
+}
+
+.pick-half {
+    width: 100%;
+    padding: 7px 4px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pick-half:hover {
+    border-color: #34d399;
+    color: #047857;
+}
+
+.pick-half.is-on {
+    background: #dcfce7;
+    border: 1px solid #4ade80;
     color: #15803d;
 }
 

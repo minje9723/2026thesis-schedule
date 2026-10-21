@@ -549,13 +549,15 @@ function openDateProfDetailModal(dateStr) {
             </div>
             <span style="font-size:0.78rem; color:#64748b;">(확정 후에도 [확정 취소] 버튼으로 언제든 취소 가능)</span>
         </div>
-        <table class="daily-table" style="min-width: 100%;">
+        <div class="mobile-scroll-hint" style="display:none;">👉 좌우로 스크롤하여 전체 시간표를 확인할 수 있습니다.</div>
+        <div class="mobile-table-scroll-wrap" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+        <table class="daily-table" style="min-width: 660px;">
             <thead>
                 <tr>
-                    <th style="width: 105px;" class="center">30분 슬롯</th>
-                    <th style="width: 240px;">참석 가능 교수님</th>
-                    <th style="width: 250px;">발표 가능인원 (심사 전원 가능 후보)</th>
-                    <th style="width: 320px;" class="center">발표자 이름 입력 및 확정 / 취소</th>
+                    <th style="width: 100px;" class="center">30분 슬롯</th>
+                    <th style="width: 220px;">참석 가능 교수님</th>
+                    <th style="width: 230px;">발표 가능인원 (심사 전원 가능 후보)</th>
+                    <th style="width: 290px;" class="center">발표자 이름 입력 및 확정 / 취소</th>
                 </tr>
             </thead>
             <tbody>
@@ -631,7 +633,7 @@ function openDateProfDetailModal(dateStr) {
                            data-date="${dateStr}" 
                            data-time="${time}" 
                            placeholder="발표자 이름 입력 (예: 김민제)" 
-                           style="font-size:0.82rem; padding:5px 8px; width:175px; border-radius:6px; border:1px solid #cbd5e1;">
+                           style="font-size:0.82rem; padding:5px 8px; width:160px; border-radius:6px; border:1px solid #cbd5e1;">
                     <button class="btn btn-sm btn-success btn-modal-confirm-slot" 
                             data-date="${dateStr}" 
                             data-time="${time}">
@@ -651,7 +653,7 @@ function openDateProfDetailModal(dateStr) {
         `;
     });
 
-    tableHtml += `</tbody></table>`;
+    tableHtml += `</tbody></table></div>`;
     container.innerHTML = tableHtml;
 
     // Helper: Execute slot confirmation
@@ -1523,6 +1525,18 @@ function renderInteractiveProfAvailTable() {
     let modeToSet = true;
 
     tableContainer.querySelectorAll('.avail-check-cell').forEach(cell => {
+        // Direct tap on mobile devices
+        cell.addEventListener('click', () => {
+            const dt = cell.getAttribute('data-datetime');
+            const currentSelected = cell.classList.contains('selected');
+            if (currentSelected) cell.classList.remove('selected');
+            else cell.classList.add('selected');
+            toggleProfAvailability(profName, dt);
+            renderProfCalendarHero();
+            renderPresentersSection();
+        });
+
+        // Desktop mouse drag
         cell.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isMouseDown = true;

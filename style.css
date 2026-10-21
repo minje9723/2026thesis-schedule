@@ -1936,7 +1936,12 @@ a {
     transform: translateY(0);
 }
 
-/* Responsive queries */
+/* ==========================================================================
+   MOBILE-FRIENDLY RESPONSIVE DESIGN SYSTEM
+   - Tablets (< 900px, < 768px)
+   - Smartphones (< 640px, < 480px)
+   ========================================================================== */
+
 @media (max-width: 900px) {
     .header-inner {
         flex-direction: column;
@@ -1957,5 +1962,443 @@ a {
     }
     .form-row.grid-3, .form-row.grid-2 {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Page & Layout */
+    .container {
+        padding: 0 12px;
+    }
+    .main-layout {
+        padding-top: 14px;
+        padding-bottom: 40px;
+    }
+
+    /* Sticky Mobile Header */
+    .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .header-inner {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .brand-area {
+        gap: 10px;
+    }
+    .brand-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+    }
+    .brand-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    .brand-title {
+        font-size: 1.05rem;
+    }
+    .brand-subtitle {
+        display: none; /* Hide long subtitle to keep header compact */
+    }
+    .header-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .header-actions .btn {
+        flex: 1 1 calc(50% - 4px);
+        font-size: 0.8rem;
+        padding: 8px 10px;
+        justify-content: center;
+        min-height: 40px;
+    }
+    .presenter-selector-box {
+        width: 100%;
+        justify-content: space-between;
+        padding: 6px 10px;
+    }
+    .presenter-selector-box select {
+        flex: 1;
+        font-size: 0.85rem;
+        min-height: 36px;
+    }
+
+    /* Sector 1: Professor Availability Hero Calendar */
+    .prof-calendar-hero-sector {
+        padding: 16px 12px;
+        border-radius: 12px;
+    }
+    .sector-header-row {
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .sector-main-title {
+        font-size: 1.15rem;
+        line-height: 1.35;
+        margin-bottom: 4px;
+    }
+    .sector-subtitle {
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+    .sector-header-actions {
+        width: 100%;
+    }
+    .sector-header-actions .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px;
+        font-size: 0.875rem;
+        min-height: 42px;
+    }
+
+    /* Swipeable Professor Filter Chips */
+    .prof-filter-toolbar {
+        padding: 8px 10px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .prof-filter-label {
+        font-size: 0.75rem;
+    }
+    .prof-filter-chips {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        padding-bottom: 6px;
+        flex-wrap: nowrap;
+        gap: 6px;
+        scrollbar-width: none;
+    }
+    .prof-filter-chips::-webkit-scrollbar {
+        display: none;
+    }
+    .prof-chip {
+        padding: 5px 10px;
+        font-size: 0.76rem;
+        flex-shrink: 0;
+    }
+    .filter-divider {
+        display: none;
+    }
+
+    /* Calendar Controls & Legend */
+    .prof-cal-controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .prof-month-toggle {
+        width: 100%;
+    }
+    .prof-month-toggle .btn-chip {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+        font-size: 0.82rem;
+    }
+    .prof-cal-legend {
+        gap: 8px;
+        font-size: 0.7rem;
+    }
+    .legend-cal-tip {
+        display: none;
+    }
+
+    /* Mobile Calendar Grid */
+    .calendar-grid-header {
+        font-size: 0.75rem;
+        padding: 8px 0;
+    }
+    .calendar-grid-body {
+        gap: 4px;
+    }
+    .cal-day-cell {
+        min-height: 72px;
+        padding: 4px 2px;
+        border-radius: 6px;
+    }
+    .prof-cal-cell {
+        min-height: 72px;
+    }
+    .cal-day-num {
+        font-size: 0.78rem;
+    }
+    .cal-badge-confirmed {
+        font-size: 0.58rem;
+        padding: 1px 3px;
+        border-radius: 3px;
+    }
+    .cal-badge-golden {
+        font-size: 0.58rem;
+        padding: 1px 3px;
+        border-radius: 3px;
+    }
+    .cal-prof-summary-chip {
+        font-size: 0.62rem;
+        padding: 1px 4px;
+        border-radius: 3px;
+    }
+    .cal-day-footer {
+        display: none; /* Hide redundant footer on mobile to keep cells neat */
+    }
+
+    /* Sector 2: Summary Stats (2-Column Grid on Mobile) */
+    .overview-stats-banner {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-top: 24px !important;
+        margin-bottom: 20px;
+    }
+    .stats-card {
+        padding: 12px 14px;
+        border-radius: 10px;
+    }
+    .stats-card.highlight-card {
+        grid-column: span 2;
+    }
+    .stat-number {
+        font-size: 1.45rem;
+    }
+    .stat-label {
+        font-size: 0.75rem;
+    }
+
+    /* Sector 3: Presenter Cards (1-Column on Mobile) */
+    .presenters-section-group {
+        margin-top: 24px;
+    }
+    .roster-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .roster-card {
+        padding: 14px;
+        border-radius: 12px;
+    }
+    .roster-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .roster-card-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .roster-card-actions .btn {
+        width: 100%;
+        padding: 9px;
+        font-size: 0.85rem;
+        justify-content: center;
+        min-height: 40px;
+    }
+
+    /* Page 2: Individual Presenter Coordination View */
+    .detail-top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .detail-actions {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+    }
+    .detail-actions .btn {
+        flex: 1;
+        justify-content: center;
+        font-size: 0.8rem;
+        min-height: 38px;
+    }
+    .presenter-banner {
+        padding: 14px;
+        gap: 12px;
+    }
+    .banner-main h2 {
+        font-size: 1.15rem;
+    }
+    .banner-meta {
+        font-size: 0.8rem;
+    }
+    .banner-committee {
+        min-width: unset;
+        width: 100%;
+    }
+    .view-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .view-tabs {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        scrollbar-width: none;
+        padding: 4px;
+    }
+    .view-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    .subview-panel {
+        padding: 14px 12px;
+    }
+    .day-header-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .day-date-picker {
+        flex-wrap: wrap;
+    }
+    .day-date-picker h3 {
+        font-size: 1.05rem;
+        width: 100%;
+    }
+    .day-actions .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 40px;
+    }
+
+    /* Modals: Mobile Optimized */
+    .modal-backdrop {
+        padding: 8px;
+        align-items: flex-end; /* Bottom sheet style on smartphones */
+    }
+    .modal-dialog {
+        max-width: 100% !important;
+        width: 100%;
+        max-height: 94vh;
+        border-radius: 16px 16px 0 0;
+        margin: 0;
+    }
+    .modal-header {
+        padding: 14px 16px;
+    }
+    .modal-header h3 {
+        font-size: 1.05rem;
+    }
+    .modal-subtitle {
+        font-size: 0.75rem;
+    }
+    .modal-body {
+        padding: 14px 12px;
+        max-height: 68vh !important;
+    }
+    .modal-footer {
+        padding: 12px 14px;
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+    .modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+        padding: 10px;
+        font-size: 0.9rem;
+        min-height: 42px;
+    }
+
+    /* Modal Tables Horizontal Scroll Wrapper */
+    .daily-matrix-container, .avail-grid-scroll, .mobile-table-scroll-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 6px;
+    }
+
+    .mobile-scroll-hint {
+        display: block !important;
+        font-size: 0.72rem;
+        color: #475569;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        padding: 6px 10px;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        text-align: center;
+        font-weight: 500;
+    }
+
+    /* Professor Availability Modal Header on Mobile */
+    .prof-avail-header-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .prof-select-group {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+    }
+    .prof-main-select {
+        width: 100%;
+        min-width: unset;
+        min-height: 40px;
+    }
+    .prof-quick-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+    .prof-quick-actions .btn {
+        padding: 6px 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* Extra Compact Smartphones (< 480px) */
+@media (max-width: 480px) {
+    .calendar-grid-header {
+        font-size: 0.7rem;
+    }
+    .cal-day-cell {
+        min-height: 62px;
+        padding: 3px 1px;
+    }
+    .cal-day-num {
+        font-size: 0.74rem;
+    }
+    .cal-prof-summary-chip {
+        font-size: 0.58rem;
+        padding: 1px 2px;
+    }
+    .cal-badge-confirmed, .cal-badge-golden {
+        font-size: 0.56rem;
+        padding: 1px 2px;
+    }
+    .input-slot-student-name {
+        width: 125px !important;
+        font-size: 15px !important;
+    }
+    .btn-modal-confirm-slot {
+        padding: 5px 8px !important;
+        font-size: 0.76rem !important;
+    }
+    .btn-candidate-chip {
+        font-size: 0.68rem;
+        padding: 1px 4px;
+    }
+    .toast {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        text-align: center;
     }
 }

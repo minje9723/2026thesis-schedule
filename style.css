@@ -192,6 +192,10 @@ a {
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+.presenter-selector-box[hidden] {
+    display: none;
+}
+
 .presenter-selector-box label {
     font-size: 0.8rem;
     color: #cbd5e1;
@@ -705,7 +709,7 @@ a {
     background: linear-gradient(135deg, #ffffff 0%, #faf8ff 100%);
 }
 
-/* 카드 구성: 이름 줄 → 상태 줄 → 심사위원단 → 버튼 (글자 크기 1.1 / 0.75 / 0.8rem 3단계) */
+/* 카드 구성: 이름 줄 → 상태 줄 → 심사위원단 → 버튼 (글자 크기 1.1 / 0.8 / 0.75rem 3단계) */
 .roster-card-header {
     display: flex;
     align-items: center;
@@ -717,16 +721,6 @@ a {
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-primary);
-    white-space: nowrap;
-}
-
-.roster-duration-tag {
-    font-size: 0.75rem;
-    background: var(--surface-subtle);
-    color: var(--text-secondary);
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    font-weight: 600;
     white-space: nowrap;
 }
 

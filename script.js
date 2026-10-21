@@ -21,6 +21,10 @@ const PROFESSORS = {
 
 const ALL_PROF_NAMES = [...PROFESSORS.internal, ...PROFESSORS.external];
 
+// 일단 숨겨 둔 화면 요소 (다시 보이려면 true)
+const SHOW_ROSTER_COORDINATION_BUTTON = false;   // 발표자 카드의 [일정 조율/확정 →] 버튼
+const SHOW_HEADER_PRESENTER_SELECT = false;      // 상단바의 '발표자 선택'
+
 const SCHEDULE_YEAR = 2026;
 const SCHEDULE_MONTHS = [11, 12];
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -1059,9 +1063,6 @@ function buildDateDetailRow(dateStr, period, draft) {
 // 4. SECTOR 3: PRESENTER ROSTER & MATCHING SUMMARY
 // ==========================================================================
 
-// 명단 카드의 [일정 조율/확정 →] 버튼 (일단 숨김 · 다시 보이려면 true)
-const SHOW_ROSTER_COORDINATION_BUTTON = false;
-
 function renderPresentersSection() {
     const presenters = appState.presenters;
 
@@ -1116,7 +1117,6 @@ function renderRosterGrid(containerId, list) {
         card.innerHTML = `
             <div class="roster-card-header">
                 <h4 class="roster-student-name">${p.name}</h4>
-                <span class="roster-duration-tag">30분 발표</span>
             </div>
 
             <div class="roster-status-row">${statusBadgeHtml}</div>
@@ -1933,6 +1933,7 @@ function renderAll() {
 
 // Global Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.presenter-selector-box').hidden = !SHOW_HEADER_PRESENTER_SELECT;
     renderProfFilterChips();
     initDataSource();
 

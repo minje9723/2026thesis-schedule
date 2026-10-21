@@ -1534,6 +1534,47 @@ a {
     font-weight: 600;
 }
 
+.slot-period-cell strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.slot-period-cell span {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.slot-time-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.slot-time-input {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    max-width: 130px;
+}
+
+.slot-confirmed-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.slot-confirmed-item .btn {
+    padding: 2px 8px;
+    font-size: 0.72rem;
+}
+
 /* 휴대폰: 가로 스크롤 대신 시간대마다 카드 형태로 세로 배치 */
 @media (max-width: 640px) {
     .date-detail-table {
@@ -1560,6 +1601,9 @@ a {
         border: none;
         padding: 3px 0;
         text-align: left;
+    }
+    .date-detail-table .slot-confirmed-item {
+        justify-content: flex-start;
     }
 }
 

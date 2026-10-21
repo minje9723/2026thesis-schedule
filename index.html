@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261021.2">
+    <link rel="stylesheet" href="style.css?v=20261021.3">
 </head>
 
 <body>
@@ -86,7 +86,7 @@
                             <span class="prof-initial-badge is-int">내</span> 내부
                             <span class="prof-initial-badge is-ext">외</span> 외부</span>
                         <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정</span>
-                        <span class="legend-cal-tip">💡 날짜를 누르면 <strong>30분 단위로 교수님 가능 일정을 지정하고 발표자를 확정/취소</strong>할 수
+                        <span class="legend-cal-tip">💡 날짜를 누르면 <strong>오전/오후별로 교수님 가능 일정을 지정하고 발표자를 확정/취소</strong>할 수
                             있습니다.</span>
                     </div>
                 </div>
@@ -243,7 +243,7 @@
                             <line x1="8" y1="4" x2="8" y2="22" />
                             <line x1="16" y1="4" x2="16" y2="22" />
                         </svg>
-                        주차별 타임테이블 (30분)
+                        주차별 시간표 (오전/오후)
                     </button>
                     <button class="tab-btn" data-subview="day">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2"
@@ -259,7 +259,7 @@
                             <polygon
                                 points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                         </svg>
-                        심사위원 전원 가능 30분 슬롯 (최적 추천)
+                        심사위원 전원 가능 일정 (추천)
                     </button>
                 </div>
 
@@ -279,7 +279,7 @@
                 <div class="calendar-legend">
                     <div class="legend-item"><span class="legend-dot golden"></span> 심사위원 전원 가능 (발표 가능)</div>
                     <div class="legend-item"><span class="legend-dot confirmed"></span> 심사일 확정</div>
-                    <span class="legend-tip">💡 날짜를 클릭하면 해당 일자의 30분 단위 상세 시간표로 이동합니다.</span>
+                    <span class="legend-tip">💡 날짜를 클릭하면 해당 일자의 오전/오후 상세 조율로 이동합니다.</span>
                 </div>
 
                 <div class="calendar-grid-header">
@@ -300,7 +300,7 @@
                         <select id="weekSelect" class="styled-select"></select>
                     </div>
                     <div class="time-range-hint">
-                        운영 시간: <strong>오전 09:00 ~ 오후 18:30 (30분 간격 슬롯)</strong>
+                        시간대: <strong>오전 09:00~12:00 · 오후 12:00~18:00</strong> (정확한 발표 시간은 확정할 때 입력)
                     </div>
                 </div>
                 <div class="weekly-matrix-container">
@@ -328,8 +328,8 @@
             <section id="subviewRecommend" class="subview-panel">
                 <div class="panel-header-row">
                     <div>
-                        <h3>심사위원 전원 가능 30분 슬롯 (최적 추천)</h3>
-                        <p class="section-desc">교수님들의 통합 가능 일정을 기반으로, 내 심사위원이 모두 가능한 30분 슬롯을 계산했습니다.</p>
+                        <h3>심사위원 전원 가능 일정 (추천)</h3>
+                        <p class="section-desc">교수님들의 통합 가능 일정을 기반으로, 내 심사위원이 모두 가능한 오전/오후 시간대를 찾았습니다.</p>
                     </div>
                     <button id="btnCopyAnnouncement" class="btn btn-primary">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
@@ -351,7 +351,7 @@
             <div class="modal-header">
                 <div>
                     <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 현황 및 발표자 확정</h3>
-                    <p class="modal-subtitle">시간대별로 참석 가능한 교수님을 지정하고, 발표자를 선택해 확정하거나 기존 확정을 취소할 수 있습니다.</p>
+                    <p class="modal-subtitle">오전/오후별로 참석 가능한 교수님을 지정하고, 발표자와 발표 시간을 입력해 확정하거나 기존 확정을 취소할 수 있습니다.</p>
                 </div>
                 <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
             </div>
@@ -436,19 +436,23 @@
     <div class="modal-backdrop" id="modalConfirmDefense">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h3>30분 심사 일정 확정 및 취소 관리</h3>
+                <h3>심사 일정 확정 및 취소 관리</h3>
                 <button class="modal-close" data-close="modalConfirmDefense">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="confirm-lead-text" id="confirmLeadText">선택한 일시로 학위논문 발표(30분) 일정을 확정하시겠습니까?</p>
+                <p class="confirm-lead-text" id="confirmLeadText">발표 시간을 입력하고 학위논문 발표(30분) 일정을 확정하세요.</p>
                 <div class="confirm-info-box">
                     <div class="confirm-info-row">
                         <span>발표자:</span>
                         <strong id="confirmModalPresenter">-</strong>
                     </div>
                     <div class="confirm-info-row">
-                        <span>확정 일시:</span>
+                        <span>날짜·시간대:</span>
                         <strong id="confirmModalDateTime" class="highlight-date">-</strong>
+                    </div>
+                    <div class="confirm-info-row">
+                        <label for="confirmModalTime">발표 시간:</label>
+                        <input type="time" id="confirmModalTime" class="form-control" step="300">
                     </div>
                     <div class="confirm-info-row">
                         <span>배정 시간:</span>
@@ -495,8 +499,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261021.2"></script>
-    <script src="script.js?v=20261021.2"></script>
+    <script src="firebase-config.js?v=20261021.3"></script>
+    <script src="script.js?v=20261021.3"></script>
 </body>
 
 </html>

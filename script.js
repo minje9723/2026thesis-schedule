@@ -1,7 +1,7 @@
 /**
  * 대학원 학위논문 발표 일정 조율 플랫폼 (script.js)
  * - 교수님 심사 가능 캘린더 (최상단 메인 섹터)
- * - 교수님 가능 일정(30분 단위) 종합 취합 및 필터링
+ * - 교수님 가능 일정(오전/오후) 종합 취합 및 필터링, 발표 시간은 확정 시 직접 입력
  * - 확정된 일정 원클릭 취소 기능 전면 지원
  * - 교수님별 심사가능현황에서 발표자 선택/입력 후 확정 & 취소 지원
  */
@@ -66,25 +66,49 @@ function formatDateWithDay(dateStr) {
     return { y, m, d, dayName };
 }
 
-const TIME_SLOTS = [
-    "09:00", "09:30",
-    "10:00", "10:30",
-    "11:00", "11:30",
-    "12:00", "12:30",
-    "13:00", "13:30",
-    "14:00", "14:30",
-    "15:00", "15:30",
-    "16:00", "16:30",
-    "17:00", "17:30",
-    "18:00"
+// 하루를 오전/오후로 나눠 조율하고, 정확한 발표 시간(30분)은 확정할 때 직접 입력
+// 교수님 가능 일정은 "2026-11-20 AM" / "2026-11-20 PM" 형식으로 저장
+const PERIODS = [
+    { key: 'AM', label: '오전', range: '09:00~12:00', minTime: '09:00', maxTime: '11:59' },
+    { key: 'PM', label: '오후', range: '12:00~18:00', minTime: '12:00', maxTime: '18:00' }
 ];
 
+function getPeriod(key) {
+    return PERIODS.find(p => p.key === key);
+}
+
+function periodOfTime(time) {
+    return time < '12:00' ? 'AM' : 'PM';
+}
+
+// 확정 일정의 시간대 (오전/오후 도입 전에 확정된 일정은 시간으로 판단)
+function schedulePeriod(schedule) {
+    return schedule.period || periodOfTime(schedule.time);
+}
+
+function scheduleText(schedule) {
+    const { dayName } = formatDateWithDay(schedule.date);
+    return `${schedule.date} (${dayName}) ${getPeriod(schedulePeriod(schedule)).label} ${schedule.time} ~ ${getEndTime30Min(schedule.time)}`;
+}
+
+// 30분 단위로 저장돼 있던 예전 일정("2026-11-20 14:00")을 오전/오후 형식으로 변환
+function toPeriodSlot(slot) {
+    const [date, part] = slot.split(' ');
+    return getPeriod(part) ? slot : `${date} ${periodOfTime(part)}`;
+}
+
+function toPeriodSlots(slots) {
+    return [...new Set(slots.map(toPeriodSlot))];
+}
+
+function toMinutes(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
+
 function getEndTime30Min(startTimeStr) {
-    const [h, m] = startTimeStr.split(':').map(Number);
-    let totalMins = h * 60 + m + 30;
-    const endH = Math.floor(totalMins / 60);
-    const endM = totalMins % 60;
-    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    const totalMins = toMinutes(startTimeStr) + 30;
+    return `${String(Math.floor(totalMins / 60)).padStart(2, '0')}:${String(totalMins % 60).padStart(2, '0')}`;
 }
 
 // 캘린더용 교수님 성(Initial) 추출 (내부/외부는 배지 색으로 구분)
@@ -111,6 +135,7 @@ const DEFAULT_PRESENTERS = [
         ],
         confirmedSchedule: {
             date: "2026-11-27",
+            period: "PM",
             time: "14:00",
             duration: 30,
             location: "세미나실 1호"
@@ -268,8 +293,9 @@ const DEFAULT_PRESENTERS = [
     }
 ];
 
+// 예시 가능 일정 (시간으로 적어 두고 오전/오후로 변환해 사용)
 function generateDefaultProfAvailability() {
-    return {
+    const byTime = {
         "김수철 교수님": [
             "2026-11-19 14:00", "2026-11-19 14:30", "2026-11-19 15:00", "2026-11-19 15:30",
             "2026-11-20 13:30", "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
@@ -321,6 +347,9 @@ function generateDefaultProfAvailability() {
             "2026-12-04 14:00", "2026-12-04 14:30"
         ]
     };
+    const result = {};
+    Object.keys(byTime).forEach(name => { result[name] = toPeriodSlots(byTime[name]); });
+    return result;
 }
 
 let appState = {
@@ -344,12 +373,11 @@ function loadState() {
 
         if (savedPresenters && savedProfAvail) {
             appState.presenters = JSON.parse(savedPresenters);
-            appState.profAvailability = JSON.parse(savedProfAvail);
+            const savedAvail = JSON.parse(savedProfAvail);
             const defaults = generateDefaultProfAvailability();
+            appState.profAvailability = {};
             ALL_PROF_NAMES.forEach(pName => {
-                if (!appState.profAvailability[pName]) {
-                    appState.profAvailability[pName] = defaults[pName] || [];
-                }
+                appState.profAvailability[pName] = savedAvail[pName] ? toPeriodSlots(savedAvail[pName]) : (defaults[pName] || []);
             });
         } else {
             resetToSampleData();
@@ -502,11 +530,28 @@ function applyPresentersSnapshot(snapshot) {
 function applyProfAvailSnapshot(snapshot) {
     // 현재 명단에 없는 교수님 문서(이름 변경 전 문서 등)는 무시
     const next = {};
+    const legacyDocs = [];
     ALL_PROF_NAMES.forEach(pName => { next[pName] = []; });
     snapshot.docs.forEach(doc => {
-        if (ALL_PROF_NAMES.includes(doc.id)) next[doc.id] = (doc.data().slots || []).slice();
+        if (!ALL_PROF_NAMES.includes(doc.id)) return;
+        const raw = doc.data().slots || [];
+        next[doc.id] = toPeriodSlots(raw);
+        const legacy = raw.filter(slot => toPeriodSlot(slot) !== slot);
+        if (legacy.length) legacyDocs.push({ name: doc.id, legacy, converted: next[doc.id] });
     });
     appState.profAvailability = next;
+
+    // 30분 단위로 남아 있는 예전 일정은 오전/오후로 바꿔 저장 (추가와 삭제를 한 번에 처리)
+    if (legacyDocs.length) {
+        const FieldValue = firebase.firestore.FieldValue;
+        const batch = firestoreDb.batch();
+        legacyDocs.forEach(({ name, legacy, converted }) => {
+            const ref = firestoreDb.collection(FS_COL_PROF_AVAIL).doc(name);
+            batch.set(ref, { slots: FieldValue.arrayUnion(...converted) }, { merge: true });
+            batch.set(ref, { slots: FieldValue.arrayRemove(...legacy) }, { merge: true });
+        });
+        batch.commit().catch(handleSyncError);
+    }
     Object.keys(syncedProfSlots).forEach(k => delete syncedProfSlots[k]);
     Object.keys(next).forEach(pName => { syncedProfSlots[pName] = new Set(next[pName]); });
 }
@@ -683,24 +728,62 @@ function analyzeSlotForStudent(presenter, dateTimeStr) {
     };
 }
 
-function countStudentGoldenSlotsOnDate(presenter, dateStr) {
-    return TIME_SLOTS.filter(time => analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch).length;
+// 해당 날짜에 심사위원 전원이 가능한 시간대(오전/오후) 목록
+function getAllMatchPeriods(presenter, dateStr) {
+    return PERIODS.filter(p => analyzeSlotForStudent(presenter, `${dateStr} ${p.key}`).isAllMatch).map(p => p.key);
 }
 
-// 심사위원 전원이 가능한 30분 슬롯 전체 (11~12월 평일)
+// 심사위원 전원이 가능한 시간대 전체 (11~12월 평일 오전/오후)
 function findAllMatchSlots(presenter) {
-    const slots = [];
-    getAllScheduleDates().forEach(dateStr => {
-        TIME_SLOTS.forEach(time => {
-            if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch) slots.push({ dateStr, time });
-        });
-    });
-    return slots;
+    return getAllScheduleDates().flatMap(dateStr =>
+        getAllMatchPeriods(presenter, dateStr).map(period => ({ dateStr, period }))
+    );
 }
 
-function confirmSchedule(presenter, dateStr, time, location) {
-    presenter.confirmedSchedule = { date: dateStr, time, duration: 30, location };
+// 발표 확정: 시간 입력 확인 → 시간 겹침·기존 확정·심사위원 미지정 확인 → 저장. 저장했으면 true
+function confirmPresenterSchedule(presenter, dateStr, period, time, location) {
+    if (!presenter) {
+        alert("확정할 발표자를 먼저 선택해주세요.");
+        return false;
+    }
+    const p = getPeriod(period);
+    if (!/^\d{2}:\d{2}$/.test(time || '')) {
+        alert("발표 시간을 입력해주세요. (예: 14:00)");
+        return false;
+    }
+    if (time < p.minTime || time > p.maxTime) {
+        alert(`${p.label} 발표 시간은 ${p.range} 사이로 입력해주세요.`);
+        return false;
+    }
+
+    // 같은 날 30분 발표끼리 겹치는지 확인
+    const overlapping = appState.presenters.find(x =>
+        x !== presenter && x.confirmedSchedule && x.confirmedSchedule.date === dateStr &&
+        Math.abs(toMinutes(x.confirmedSchedule.time) - toMinutes(time)) < 30
+    );
+    if (overlapping && !confirm(`${overlapping.name}님의 발표(${overlapping.confirmedSchedule.time}~${getEndTime30Min(overlapping.confirmedSchedule.time)})와 시간이 겹칩니다.\n그래도 확정하시겠습니까?`)) {
+        return false;
+    }
+
+    if (presenter.confirmedSchedule) {
+        const cur = presenter.confirmedSchedule;
+        if (!confirm(`${presenter.name}님은 이미 ${cur.date} ${cur.time}에 확정되어 있습니다.\n${dateStr} ${time}(으)로 변경하여 확정하시겠습니까?`)) {
+            return false;
+        }
+    }
+
+    const analysis = analyzeSlotForStudent(presenter, `${dateStr} ${period}`);
+    if (!analysis.isAllMatch && analysis.unavailableNames.length > 0) {
+        if (!confirm(`주의: ${presenter.name}님의 심사위원 중 [${analysis.unavailableNames.join(', ')}] 교수님이 이 날 ${p.label}에 참석 가능으로 지정되어 있지 않습니다.\n그래도 확정하시겠습니까?`)) {
+            return false;
+        }
+    }
+
+    presenter.confirmedSchedule = { date: dateStr, period, time, duration: 30, location };
     saveState();
+    renderAll();
+    showToast(`${presenter.name}님의 발표가 ${dateStr} ${p.label} ${time}으로 확정되었습니다! 🎉`);
+    return true;
 }
 
 // 확인 창을 띄운 뒤 확정 취소. 취소했으면 true
@@ -816,10 +899,10 @@ function renderProfFilterChips() {
 }
 
 /**
- * MODAL: 날짜별 30분 단위 교수님 가능 일정 지정 & 발표자 확정 / 취소
- * - 교수님 이름을 눌러 해당 시간의 참석 가능 여부 지정
- * - 발표자 선택 목록 (심사위원 전원 가능 후보를 먼저 표시)
- * - 확정 / 확정 취소
+ * MODAL: 날짜별 오전/오후 교수님 가능 일정 지정 & 발표자 확정 / 취소
+ * - 교수님 이름을 눌러 오전/오후 참석 가능 여부 지정
+ * - 발표자 선택(심사위원 전원 가능 후보 먼저) + 정확한 발표 시간 직접 입력
+ * - 확정 / 확정 취소 (한 시간대에 여러 명 확정 가능)
  * (클릭 처리는 DOMContentLoaded에서 #dateProfDetailContent에 위임)
  */
 function openDateProfDetailModal(dateStr) {
@@ -830,17 +913,17 @@ function openDateProfDetailModal(dateStr) {
 
     document.getElementById('dateProfDetailContent').innerHTML = `
         <div class="date-detail-guide">
-            <div>💡 <strong>교수님 이름</strong>을 눌러 이 시간의 참석 가능 여부를 지정하고, <strong>발표자를 선택</strong>한 뒤 <strong>[확정]</strong>을 누르세요.</div>
-            <span class="date-detail-guide-sub">색이 채워진 이름 = 참석 가능 · 확정 후에도 [확정 취소] 가능</span>
+            <div>💡 <strong>교수님 이름</strong>을 눌러 오전/오후 참석 가능 여부를 지정하고, <strong>발표자를 선택하고 발표 시간을 입력</strong>한 뒤 <strong>[확정]</strong>을 누르세요.</div>
+            <span class="date-detail-guide-sub">색이 채워진 이름 = 참석 가능 · 한 시간대에 여러 발표자 확정 가능 · 확정 후에도 [취소] 가능</span>
         </div>
         <div class="mobile-table-scroll-wrap" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
         <table class="daily-table date-detail-table">
             <thead>
                 <tr>
-                    <th style="width: 95px;" class="center">30분 슬롯</th>
+                    <th style="width: 95px;" class="center">시간대</th>
                     <th>참석 가능 교수님 (눌러서 지정)</th>
-                    <th style="width: 230px;">발표자 선택</th>
-                    <th style="width: 110px;" class="center">확정 / 취소</th>
+                    <th style="width: 250px;">발표자 선택 · 발표 시간 입력</th>
+                    <th style="width: 190px;" class="center">확정 / 취소</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -852,97 +935,79 @@ function openDateProfDetailModal(dateStr) {
     document.getElementById('modalDateProfDetail').classList.add('active');
 }
 
-// 표의 행만 다시 그림 (골라 둔 발표자와 스크롤 위치 유지)
+// 표의 행만 다시 그림 (입력 중인 발표자·시간과 스크롤 위치 유지)
 function refreshDateDetailRows() {
     const dateStr = appState.detailModalDate;
     const tbody = document.querySelector('#dateProfDetailContent tbody');
     if (!dateStr || !tbody) return;
 
-    const selected = {};
-    tbody.querySelectorAll('.slot-presenter-select').forEach(sel => { selected[sel.dataset.time] = sel.value; });
-    tbody.innerHTML = TIME_SLOTS.map(time => buildDateDetailRow(dateStr, time, selected[time] || '')).join('');
+    const drafts = {};
+    tbody.querySelectorAll('tr[data-period]').forEach(tr => {
+        const sel = tr.querySelector('.slot-presenter-select');
+        const timeInput = tr.querySelector('.slot-time-input');
+        drafts[tr.dataset.period] = { presenterId: sel ? sel.value : '', time: timeInput ? timeInput.value : '' };
+    });
+    tbody.innerHTML = PERIODS.map(p => buildDateDetailRow(dateStr, p, drafts[p.key] || { presenterId: '', time: '' })).join('');
 }
 
-function buildDateDetailRow(dateStr, time, selectedId) {
-    const dt = `${dateStr} ${time}`;
-    const confirmedHere = appState.presenters.find(
-        p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr && p.confirmedSchedule.time === time
-    );
+function buildDateDetailRow(dateStr, period, draft) {
+    const slot = `${dateStr} ${period.key}`;
+    const confirmedHere = appState.presenters
+        .filter(p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr && schedulePeriod(p.confirmedSchedule) === period.key)
+        .sort((a, b) => a.confirmedSchedule.time.localeCompare(b.confirmedSchedule.time));
 
     const profToggles = ALL_PROF_NAMES.map(name => {
-        const on = isProfAvailable(name, dt);
+        const on = isProfAvailable(name, slot);
         const typeClass = getProfType(name) === 'external' ? 'is-ext' : 'is-int';
-        return `<button type="button" class="slot-prof-toggle ${typeClass} ${on ? 'is-on' : ''}" data-prof="${name}" data-time="${time}"
+        return `<button type="button" class="slot-prof-toggle ${typeClass} ${on ? 'is-on' : ''}" data-prof="${name}" data-period="${period.key}"
                         title="${name} · ${on ? '참석 가능 (누르면 해제)' : '미지정 (누르면 참석 가능)'}">${getProfShortName(name)}</button>`;
     }).join('');
 
-    let presenterCell;
-    let actionCell;
-    if (confirmedHere) {
-        presenterCell = `<span class="status-badge confirmed">⭐ ${confirmedHere.name} (${confirmedHere.category})</span>`;
-        actionCell = `<button type="button" class="btn btn-sm btn-danger btn-modal-cancel-slot" data-id="${confirmedHere.id}">확정 취소</button>`;
-    } else {
-        const candidates = [];
-        const others = [];
-        appState.presenters.forEach(p => {
-            const analysis = analyzeSlotForStudent(p, dt);
-            (analysis.isAllMatch ? candidates : others).push({ p, analysis });
-        });
-        const option = ({ p, analysis }) => {
-            const notes = [];
-            if (!analysis.isAllMatch) notes.push(analysis.total === 0 ? '심사위원 미지정' : `${analysis.availableCount}/${analysis.total} 가능`);
-            if (p.confirmedSchedule) notes.push(`${p.confirmedSchedule.date.slice(5)} 확정됨`);
-            const label = `${p.name} (${p.category.replace('발표', '')})${notes.length ? ' · ' + notes.join(' · ') : ''}`;
-            return `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${label}</option>`;
-        };
+    const candidates = [];
+    const others = [];
+    appState.presenters.forEach(p => {
+        const analysis = analyzeSlotForStudent(p, slot);
+        (analysis.isAllMatch ? candidates : others).push({ p, analysis });
+    });
+    const option = ({ p, analysis }) => {
+        const notes = [];
+        if (!analysis.isAllMatch) notes.push(analysis.total === 0 ? '심사위원 미지정' : `${analysis.availableCount}/${analysis.total} 가능`);
+        if (p.confirmedSchedule) notes.push(`${p.confirmedSchedule.date.slice(5)} ${p.confirmedSchedule.time} 확정됨`);
+        const label = `${p.name} (${p.category.replace('발표', '')})${notes.length ? ' · ' + notes.join(' · ') : ''}`;
+        return `<option value="${p.id}" ${p.id === draft.presenterId ? 'selected' : ''}>${label}</option>`;
+    };
 
-        presenterCell = `
-            <select class="form-control slot-presenter-select" data-time="${time}">
-                <option value="">-- 발표자 선택 --</option>
-                ${candidates.length ? `<optgroup label="심사위원 전원 가능 (${candidates.length}명)">${candidates.map(option).join('')}</optgroup>` : ''}
-                ${others.length ? `<optgroup label="그 외 발표자">${others.map(option).join('')}</optgroup>` : ''}
-            </select>
-            <div class="slot-candidate-count ${candidates.length ? 'has-candidates' : ''}">${candidates.length ? `✓ 전원 가능 후보 ${candidates.length}명` : '전원 가능 후보 없음'}</div>
-        `;
-        actionCell = `<button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot" data-time="${time}">확정</button>`;
-    }
+    const confirmedList = confirmedHere.map(p => `
+        <div class="slot-confirmed-item">
+            <span class="status-badge confirmed">⭐ ${p.confirmedSchedule.time} ${p.name}</span>
+            <button type="button" class="btn btn-sm btn-danger btn-modal-cancel-slot" data-id="${p.id}">취소</button>
+        </div>
+    `).join('');
 
     return `
-        <tr class="daily-time-row ${confirmedHere ? 'is-confirmed-row' : ''}">
-            <td class="center" style="font-weight:700; font-size:0.8rem;">${time} ~ ${getEndTime30Min(time)}</td>
+        <tr class="daily-time-row ${confirmedHere.length ? 'is-confirmed-row' : ''}" data-period="${period.key}">
+            <td class="center slot-period-cell">
+                <strong>${period.label}</strong>
+                <span>${period.range}</span>
+            </td>
             <td class="slot-prof-cell">${profToggles}</td>
-            <td>${presenterCell}</td>
-            <td class="center">${actionCell}</td>
+            <td>
+                <select class="form-control slot-presenter-select">
+                    <option value="">-- 발표자 선택 --</option>
+                    ${candidates.length ? `<optgroup label="심사위원 전원 가능 (${candidates.length}명)">${candidates.map(option).join('')}</optgroup>` : ''}
+                    ${others.length ? `<optgroup label="그 외 발표자">${others.map(option).join('')}</optgroup>` : ''}
+                </select>
+                <label class="slot-time-label">발표 시간
+                    <input type="time" class="form-control slot-time-input" min="${period.minTime}" max="${period.maxTime}" step="300" value="${draft.time}">
+                </label>
+                <div class="slot-candidate-count ${candidates.length ? 'has-candidates' : ''}">${candidates.length ? `✓ 전원 가능 후보 ${candidates.length}명` : '전원 가능 후보 없음'}</div>
+            </td>
+            <td class="center">
+                <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
+                ${confirmedList}
+            </td>
         </tr>
     `;
-}
-
-// 날짜별 현황 모달에서 고른 발표자를 해당 30분 슬롯으로 확정
-function confirmPresenterAtSlot(presenterId, date, time) {
-    const student = appState.presenters.find(p => p.id === presenterId);
-    if (!student) {
-        alert("확정할 발표자를 먼저 선택해주세요.");
-        return;
-    }
-
-    if (student.confirmedSchedule) {
-        const cur = student.confirmedSchedule;
-        if (!confirm(`${student.name}님은 이미 ${cur.date} ${cur.time}에 확정되어 있습니다.\n이 시간(${date} ${time})으로 변경하여 확정하시겠습니까?`)) {
-            return;
-        }
-    }
-
-    const analysis = analyzeSlotForStudent(student, `${date} ${time}`);
-    if (!analysis.isAllMatch && analysis.unavailableNames.length > 0) {
-        if (!confirm(`주의: ${student.name}님의 심사위원 중 [${analysis.unavailableNames.join(', ')}] 교수님이 이 시간대에 참석 불가로 표시되어 있습니다.\n그래도 확정하시겠습니까?`)) {
-            return;
-        }
-    }
-
-    confirmSchedule(student, date, time, student.location || "세미나실 1호");
-    renderAll();
-    refreshDateDetailRows();
-    showToast(`${student.name}님의 발표가 ${date} ${time}으로 최종 확정되었습니다! 🎉`);
 }
 
 // ==========================================================================
@@ -982,15 +1047,15 @@ function renderRosterGrid(containerId, list) {
 
         let statusBadgeHtml = '';
         if (isConfirmed) {
-            const endTime = getEndTime30Min(p.confirmedSchedule.time);
+            const cs = p.confirmedSchedule;
             statusBadgeHtml = `
-                <span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} ${p.confirmedSchedule.time}~${endTime} 확정</span>
+                <span class="status-badge confirmed">⭐ ${cs.date.slice(5)} ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</span>
                 <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다">취소</button>
             `;
         } else if (reviewers.length === 0) {
             statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
         } else if (totalGoldenSlots > 0) {
-            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 ${totalGoldenSlots}개 슬롯</span>`;
+            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 시간대 ${totalGoldenSlots}개</span>`;
         } else {
             statusBadgeHtml = `<span class="status-badge">교수님 일정 취합중</span>`;
         }
@@ -1018,7 +1083,7 @@ function renderRosterGrid(containerId, list) {
                     심사위원 선택
                 </button>
                 <button class="btn btn-sm btn-primary btn-jump-coordination" data-id="${p.id}">
-                    30분 슬롯 조율/확정 →
+                    일정 조율/확정 →
                 </button>
             </div>
         `;
@@ -1108,9 +1173,8 @@ function updateDetailBanner() {
 
     const statusBadge = document.getElementById('bannerStatus');
     if (presenter.confirmedSchedule) {
-        const end = getEndTime30Min(presenter.confirmedSchedule.time);
         statusBadge.className = 'status-badge confirmed';
-        statusBadge.innerHTML = `심사 확정 (${presenter.confirmedSchedule.date} ${presenter.confirmedSchedule.time}~${end}) <button class="btn btn-sm btn-danger btn-banner-cancel" style="padding:1px 6px; font-size:0.7rem; margin-left:6px;">취소</button>`;
+        statusBadge.innerHTML = `심사 확정 (${scheduleText(presenter.confirmedSchedule)}) <button class="btn btn-sm btn-danger btn-banner-cancel" style="padding:1px 6px; font-size:0.7rem; margin-left:6px;">취소</button>`;
         statusBadge.querySelector('.btn-banner-cancel').onclick = (e) => {
             e.stopPropagation();
             cancelConfirmationWithPrompt(presenter);
@@ -1144,7 +1208,6 @@ function updateDetailBanner() {
         if (r.role.includes('위원장')) roleClass = 'role-chair';
         else if (r.role.includes('지도')) roleClass = 'role-advisor';
 
-
         const chip = document.createElement('div');
         chip.className = 'committee-member-chip';
         chip.innerHTML = `
@@ -1168,22 +1231,20 @@ function renderMonthlyCalendar() {
     document.getElementById('chipDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
     renderWeekdayCalendar(document.getElementById('calendarGridBody'), month, (cell, { dateStr, dayNum }) => {
-        const goldenCount = countStudentGoldenSlotsOnDate(presenter, dateStr);
-        const isConfirmed = presenter.confirmedSchedule && presenter.confirmedSchedule.date === dateStr;
+        const cs = presenter.confirmedSchedule;
+        const isConfirmed = cs && cs.date === dateStr;
+        const matchPeriods = getAllMatchPeriods(presenter, dateStr);
 
         cell.className = `cal-day-cell ${isConfirmed ? 'confirmed-day' : ''}`;
 
         let badgeHtml = '';
         let chipsHtml = '';
         if (isConfirmed) {
-            const end = getEndTime30Min(presenter.confirmedSchedule.time);
             badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
-            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${presenter.confirmedSchedule.time}~${end} 확정</div>`;
-        } else if (goldenCount > 0) {
-            // 가장 이른 전원 가능 시간 하나만 표시
-            const firstTime = TIME_SLOTS.find(time => analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch);
+            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</div>`;
+        } else if (matchPeriods.length > 0) {
             badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
-            chipsHtml = `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${firstTime}~${getEndTime30Min(firstTime)} 가능</div>`;
+            chipsHtml = `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${matchPeriods.map(k => getPeriod(k).label).join('·')} 가능</div>`;
         }
 
         cell.innerHTML = `
@@ -1250,9 +1311,9 @@ function renderWeeklyTimetable() {
     });
 
     const displayDays = (weeks[appState.currentWeekIndex] || weeks[0]).days;
+    const cs = presenter.confirmedSchedule;
 
-    let tableHtml = `<table class="weekly-table"><thead><tr><th style="width: 100px;">시간 (30분)</th>`;
-
+    let tableHtml = `<table class="weekly-table"><thead><tr><th style="width: 100px;">시간대</th>`;
     displayDays.forEach(d => {
         tableHtml += `
             <th>
@@ -1261,26 +1322,21 @@ function renderWeeklyTimetable() {
             </th>
         `;
     });
-
     tableHtml += `</tr></thead><tbody>`;
 
-    TIME_SLOTS.forEach(time => {
-        const endTime = getEndTime30Min(time);
-        tableHtml += `<tr><td class="time-col" style="font-size:0.75rem;">${time}~${endTime}</td>`;
+    PERIODS.forEach(period => {
+        tableHtml += `<tr><td class="time-col" style="font-size:0.75rem;"><strong>${period.label}</strong><br>${period.range}</td>`;
 
         displayDays.forEach(d => {
-            const dateTimeStr = `${d.dateStr} ${time}`;
-            const analysis = analyzeSlotForStudent(presenter, dateTimeStr);
-            const isConfirmed = presenter.confirmedSchedule &&
-                                presenter.confirmedSchedule.date === d.dateStr &&
-                                presenter.confirmedSchedule.time === time;
+            const slot = `${d.dateStr} ${period.key}`;
+            const analysis = analyzeSlotForStudent(presenter, slot);
+            const isConfirmed = cs && cs.date === d.dateStr && schedulePeriod(cs) === period.key;
 
             let cellClass = 'week-slot-cell';
             let cellContent = '';
-
             if (isConfirmed) {
                 cellClass += ' slot-confirmed';
-                cellContent = `<span class="slot-inner-badge" style="cursor:pointer;" title="클릭하여 확정 취소">⭐ 확정됨 (취소)</span>`;
+                cellContent = `<span class="slot-inner-badge" style="cursor:pointer;" title="클릭하여 확정 취소">⭐ ${cs.time} 확정 (취소)</span>`;
             } else if (analysis.isAllMatch) {
                 cellClass += ' slot-all';
                 cellContent = `<span class="slot-inner-badge">✓ 전원 가능</span>`;
@@ -1289,10 +1345,9 @@ function renderWeeklyTimetable() {
                 cellContent = `<span style="font-size:0.7rem; color:#cbd5e1;">-</span>`;
             }
 
-            const tooltip = `[${dateTimeStr} ~ ${endTime}]\n가능 교수님: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
-
+            const tooltip = `[${d.dateStr} ${period.label}]\n가능 교수님: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
             tableHtml += `
-                <td class="${cellClass}" title="${tooltip}" data-datetime="${dateTimeStr}" data-confirmed="${isConfirmed ? 'true' : 'false'}">
+                <td class="${cellClass}" title="${tooltip}" data-date="${d.dateStr}" data-confirmed="${isConfirmed ? 'true' : 'false'}">
                     ${cellContent}
                 </td>
             `;
@@ -1306,13 +1361,10 @@ function renderWeeklyTimetable() {
 
     matrixContainer.querySelectorAll('.week-slot-cell').forEach(cell => {
         cell.addEventListener('click', () => {
-            const dt = cell.getAttribute('data-datetime');
-            const isConf = cell.getAttribute('data-confirmed') === 'true';
-            if (isConf) {
+            if (cell.getAttribute('data-confirmed') === 'true') {
                 cancelConfirmationWithPrompt(presenter);
-            } else if (dt) {
-                const [date] = dt.split(' ');
-                appState.currentDayDate = date;
+            } else {
+                appState.currentDayDate = cell.getAttribute('data-date');
                 switchSubView('day');
             }
         });
@@ -1329,9 +1381,9 @@ function renderDailyDetail() {
 
     const reviewers = presenter.reviewers || [];
     const matrixContainer = document.getElementById('dailyMatrix');
+    const cs = presenter.confirmedSchedule;
 
-    let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 110px;" class="center">30분 슬롯</th>`;
-
+    let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 110px;" class="center">시간대</th>`;
     reviewers.forEach(r => {
         tableHtml += `
             <th>
@@ -1342,37 +1394,29 @@ function renderDailyDetail() {
             </th>
         `;
     });
-
     tableHtml += `
                     <th style="width: 130px;" class="center">참석 현황</th>
-                    <th style="width: 140px;" class="center">30분 심사 확정/취소</th>
+                    <th style="width: 150px;" class="center">확정/취소</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
-    TIME_SLOTS.forEach(time => {
-        const endTime = getEndTime30Min(time);
-        const dateTimeStr = `${dateStr} ${time}`;
-        const analysis = analyzeSlotForStudent(presenter, dateTimeStr);
-        const isConfirmed = presenter.confirmedSchedule &&
-                            presenter.confirmedSchedule.date === dateStr &&
-                            presenter.confirmedSchedule.time === time;
-
-        const rowClass = analysis.isAllMatch ? 'daily-time-row golden-row' : 'daily-time-row';
+    PERIODS.forEach(period => {
+        const slot = `${dateStr} ${period.key}`;
+        const analysis = analyzeSlotForStudent(presenter, slot);
+        const isConfirmed = cs && cs.date === dateStr && schedulePeriod(cs) === period.key;
 
         tableHtml += `
-            <tr class="${rowClass}">
-                <td class="center" style="font-weight:700; font-size:0.8rem;">${time} ~ ${endTime}</td>
+            <tr class="${analysis.isAllMatch ? 'daily-time-row golden-row' : 'daily-time-row'}">
+                <td class="center slot-period-cell"><strong>${period.label}</strong><span>${period.range}</span></td>
         `;
 
         reviewers.forEach(r => {
-            const avail = isProfAvailable(r.name, dateTimeStr);
+            const avail = isProfAvailable(r.name, slot);
             tableHtml += `
                 <td>
-                    <button class="daily-cell-btn ${avail ? 'status-yes' : 'status-no'}" 
-                            data-prof-name="${r.name}" 
-                            data-datetime="${dateTimeStr}">
+                    <button class="daily-cell-btn ${avail ? 'status-yes' : 'status-no'}" data-prof-name="${r.name}" data-slot="${slot}">
                         ${avail ? '✓ 참석 가능' : '— 불가'}
                     </button>
                 </td>
@@ -1388,26 +1432,13 @@ function renderDailyDetail() {
             summaryPill = `<span style="font-size:0.75rem; color:#94a3b8;">가능자 없음</span>`;
         }
 
-        // Action Column: When confirmed, provide DIRECT CANCEL button!
         let actionBtn = '';
         if (isConfirmed) {
-            actionBtn = `
-                <button class="btn btn-sm btn-danger btn-direct-cancel-final" data-id="${presenter.id}" title="클릭하여 확정을 취소합니다">
-                    ⭐ 확정 취소
-                </button>
-            `;
+            actionBtn = `<button class="btn btn-sm btn-danger btn-direct-cancel-final" title="클릭하여 확정을 취소합니다">⭐ ${cs.time} 확정 취소</button>`;
         } else if (analysis.isAllMatch) {
-            actionBtn = `
-                <button class="btn btn-sm btn-success btn-select-final"
-                        data-date="${dateStr}" 
-                        data-time="${time}">
-                    이 시간 확정
-                </button>
-            `;
+            actionBtn = `<button class="btn btn-sm btn-success btn-select-final" data-period="${period.key}">이 시간대로 확정</button>`;
         } else {
-            actionBtn = `
-                <span style="font-size:0.75rem; color:#94a3b8; font-weight:500;">불가 (${analysis.unavailableNames.length}인 불참)</span>
-            `;
+            actionBtn = `<span style="font-size:0.75rem; color:#94a3b8; font-weight:500;">불가 (${analysis.unavailableNames.length}인 불참)</span>`;
         }
 
         tableHtml += `
@@ -1420,28 +1451,22 @@ function renderDailyDetail() {
     tableHtml += `</tbody></table>`;
     matrixContainer.innerHTML = tableHtml;
 
-    // Toggle professor availability button
     matrixContainer.querySelectorAll('.daily-cell-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const pName = btn.getAttribute('data-prof-name');
-            const dt = btn.getAttribute('data-datetime');
-            toggleProfAvailability(pName, dt);
+            toggleProfAvailability(pName, btn.getAttribute('data-slot'));
             renderDailyDetail();
             updateDetailBanner();
             showToast(`${pName}의 일정이 수정되었습니다.`);
         });
     });
 
-    // Confirm button
     matrixContainer.querySelectorAll('.btn-select-final').forEach(btn => {
         btn.addEventListener('click', () => {
-            const d = btn.getAttribute('data-date');
-            const t = btn.getAttribute('data-time');
-            openConfirmModal(presenter, d, t);
+            openConfirmModal(presenter, dateStr, btn.getAttribute('data-period'));
         });
     });
 
-    // Direct Cancel button in Daily Table
     matrixContainer.querySelectorAll('.btn-direct-cancel-final').forEach(btn => {
         btn.addEventListener('click', () => {
             cancelConfirmationWithPrompt(presenter);
@@ -1456,13 +1481,14 @@ function renderRecommendations() {
 
     const matchedSlots = findAllMatchSlots(presenter);
     const committeeSize = (presenter.reviewers || []).length;
+    const cs = presenter.confirmedSchedule;
 
     if (matchedSlots.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🔍</div>
-                <h4>아직 심사위원 전원 가능한 30분 일정이 없습니다.</h4>
-                <p>홈 화면 캘린더에서 <strong>날짜를 눌러</strong> 심사위원 교수님들의 가능한 시간대를 지정해주세요.</p>
+                <h4>아직 심사위원 전원 가능한 일정이 없습니다.</h4>
+                <p>홈 화면 캘린더에서 <strong>날짜를 눌러</strong> 심사위원 교수님들의 오전/오후 가능 여부를 지정해주세요.</p>
                 <button class="btn btn-primary" style="margin-top:14px;" onclick="navigateToHome()">
                     홈 캘린더로 이동
                 </button>
@@ -1473,10 +1499,8 @@ function renderRecommendations() {
 
     matchedSlots.forEach((slot, index) => {
         const { y, m, d, dayName } = formatDateWithDay(slot.dateStr);
-        const endTime = getEndTime30Min(slot.time);
-        const isConfirmed = presenter.confirmedSchedule &&
-                            presenter.confirmedSchedule.date === slot.dateStr &&
-                            presenter.confirmedSchedule.time === slot.time;
+        const period = getPeriod(slot.period);
+        const isConfirmed = cs && cs.date === slot.dateStr && schedulePeriod(cs) === slot.period;
 
         const card = document.createElement('div');
         card.className = `recommendation-card is-golden ${isConfirmed ? 'is-confirmed' : ''}`;
@@ -1484,8 +1508,8 @@ function renderRecommendations() {
             <div class="rec-rank-badge">#${index + 1}</div>
             <div class="rec-info">
                 <div class="rec-datetime">
-                    ${y}년 ${m}월 ${d}일 (${dayName}) ${slot.time} ~ ${endTime} (30분)
-                    ${isConfirmed ? '<span class="status-badge confirmed" style="margin-left:8px;">현재 확정된 일정</span>' : ''}
+                    ${y}년 ${m}월 ${d}일 (${dayName}) ${period.label} (${period.range})
+                    ${isConfirmed ? `<span class="status-badge confirmed" style="margin-left:8px;">${cs.time} 확정됨</span>` : ''}
                 </div>
                 <div class="rec-meta">
                     <span>✨ <strong>심사위원 전원(${committeeSize}인) 참석 가능</strong></span>
@@ -1495,8 +1519,8 @@ function renderRecommendations() {
             </div>
             <div class="rec-actions">
                 <button class="btn btn-outline btn-sm btn-rec-jump" data-date="${slot.dateStr}">일자별 상세 보기</button>
-                <button class="btn ${isConfirmed ? 'btn-danger' : 'btn-success'} btn-sm btn-rec-confirm" data-date="${slot.dateStr}" data-time="${slot.time}">
-                    ${isConfirmed ? '확정 취소하기' : '이 시간으로 확정'}
+                <button class="btn ${isConfirmed ? 'btn-danger' : 'btn-success'} btn-sm btn-rec-confirm" data-date="${slot.dateStr}" data-period="${slot.period}" data-confirmed="${isConfirmed ? 'true' : 'false'}">
+                    ${isConfirmed ? '확정 취소하기' : '이 시간대로 확정'}
                 </button>
             </div>
         `;
@@ -1513,13 +1537,10 @@ function renderRecommendations() {
 
     container.querySelectorAll('.btn-rec-confirm').forEach(btn => {
         btn.addEventListener('click', () => {
-            const isConfirmed = btn.textContent.includes('확정 취소하기');
-            if (isConfirmed) {
+            if (btn.getAttribute('data-confirmed') === 'true') {
                 cancelConfirmationWithPrompt(presenter);
             } else {
-                const d = btn.getAttribute('data-date');
-                const t = btn.getAttribute('data-time');
-                openConfirmModal(presenter, d, t);
+                openConfirmModal(presenter, btn.getAttribute('data-date'), btn.getAttribute('data-period'));
             }
         });
     });
@@ -1695,32 +1716,37 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
     showToast(`${p.name} 심사위원단 및 발표 정보가 저장되었습니다.`);
 });
 
-function openConfirmModal(presenter, dateStr, timeStr) {
+function openConfirmModal(presenter, dateStr, period) {
     const modal = document.getElementById('modalConfirmDefense');
     const { y, m, d, dayName } = formatDateWithDay(dateStr);
-    const endTime = getEndTime30Min(timeStr);
+    const p = getPeriod(period);
+    const cs = presenter.confirmedSchedule;
 
     document.getElementById('confirmModalPresenter').textContent = `${presenter.name} (${presenter.category})`;
-    document.getElementById('confirmModalDateTime').textContent = `${y}년 ${m}월 ${d}일 (${dayName}) ${timeStr} ~ ${endTime}`;
+    document.getElementById('confirmModalDateTime').textContent = `${y}년 ${m}월 ${d}일 (${dayName}) ${p.label} (${p.range})`;
     document.getElementById('confirmModalLocation').value = presenter.location || "세미나실 1호";
+
+    const timeInput = document.getElementById('confirmModalTime');
+    timeInput.min = p.minTime;
+    timeInput.max = p.maxTime;
+    timeInput.value = cs && cs.date === dateStr && schedulePeriod(cs) === period ? cs.time : '';
 
     const btnCancel = document.getElementById('btnCancelConfirmation');
     const leadText = document.getElementById('confirmLeadText');
 
-    if (presenter.confirmedSchedule) {
+    if (cs) {
         btnCancel.style.display = 'inline-flex';
-        leadText.textContent = `현재 ${presenter.name}님의 심사 일정이 확정되어 있습니다. 시간을 변경하거나 확정을 취소할 수 있습니다.`;
+        leadText.textContent = `현재 ${presenter.name}님의 심사 일정이 ${cs.date} ${cs.time}로 확정되어 있습니다. 시간을 변경하거나 확정을 취소할 수 있습니다.`;
     } else {
         btnCancel.style.display = 'none';
-        leadText.textContent = `선택한 일시로 학위논문 발표(30분) 일정을 확정하시겠습니까?`;
+        leadText.textContent = `발표 시간을 입력하고 학위논문 발표(30분) 일정을 확정하세요.`;
     }
 
-    const btnSave = document.getElementById('btnSaveConfirmation');
-    btnSave.onclick = () => {
-        confirmSchedule(presenter, dateStr, timeStr, document.getElementById('confirmModalLocation').value.trim() || '세미나실');
-        closeModal('modalConfirmDefense');
-        renderAll();
-        showToast(`${presenter.name}님의 30분 발표 일정이 최종 확정되었습니다! 🎉`);
+    document.getElementById('btnSaveConfirmation').onclick = () => {
+        const location = document.getElementById('confirmModalLocation').value.trim() || '세미나실';
+        if (confirmPresenterSchedule(presenter, dateStr, period, timeInput.value, location)) {
+            closeModal('modalConfirmDefense');
+        }
     };
 
     btnCancel.onclick = () => {
@@ -1728,6 +1754,7 @@ function openConfirmModal(presenter, dateStr, timeStr) {
     };
 
     modal.classList.add('active');
+    timeInput.focus();
 }
 
 function openNoticeModal() {
@@ -1743,21 +1770,24 @@ function openNoticeModal() {
 
     let scheduleNotice = '';
     if (confirmed) {
-        const endTime = getEndTime30Min(confirmed.time);
         scheduleNotice = `
 [발표 확정 일시 및 장소]
-■ 일시: ${confirmed.date} (${confirmed.time} ~ ${endTime}) [배정 시간: 30분]
+■ 일시: ${scheduleText(confirmed)} [배정 시간: 30분]
 ■ 장소: ${confirmed.location}
 `;
     } else {
         const topSlots = findAllMatchSlots(presenter).slice(0, 3)
-            .map((slot, idx) => `  ${idx + 1}. ${slot.dateStr} ${slot.time} ~ ${getEndTime30Min(slot.time)}`)
+            .map((slot, idx) => {
+                const { dayName } = formatDateWithDay(slot.dateStr);
+                const p = getPeriod(slot.period);
+                return `  ${idx + 1}. ${slot.dateStr} (${dayName}) ${p.label} (${p.range})`;
+            })
             .join('\n');
 
         scheduleNotice = `
-[심사위원 전원 가능 30분 추천 일시 (조율중)]
-${topSlots || '  (현재 전원 가능한 시간을 취합 중입니다)'}
-※ 최종 시간 확정 후 재안내 예정입니다.
+[심사위원 전원 가능 추천 시간대 (조율중)]
+${topSlots || '  (현재 전원 가능한 시간대를 취합 중입니다)'}
+※ 정확한 발표 시간 확정 후 재안내 예정입니다.
 `;
     }
 
@@ -1862,7 +1892,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnNavHome').addEventListener('click', navigateToHome);
     document.getElementById('btnBackToHome').addEventListener('click', navigateToHome);
 
-
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
     });
@@ -1945,7 +1974,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dateProfDetailContent').addEventListener('click', (e) => {
         const toggle = e.target.closest('.slot-prof-toggle');
         if (toggle) {
-            toggleProfAvailability(toggle.dataset.prof, `${appState.detailModalDate} ${toggle.dataset.time}`);
+            toggleProfAvailability(toggle.dataset.prof, `${appState.detailModalDate} ${toggle.dataset.period}`);
             refreshDateDetailRows();
             renderAll();
             return;
@@ -1953,8 +1982,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const confirmBtn = e.target.closest('.btn-modal-confirm-slot');
         if (confirmBtn) {
-            const select = confirmBtn.closest('tr').querySelector('.slot-presenter-select');
-            confirmPresenterAtSlot(select.value, appState.detailModalDate, confirmBtn.dataset.time);
+            const row = confirmBtn.closest('tr');
+            const select = row.querySelector('.slot-presenter-select');
+            const timeInput = row.querySelector('.slot-time-input');
+            const presenter = appState.presenters.find(p => p.id === select.value);
+            const location = presenter ? (presenter.location || '세미나실 1호') : '';
+            if (confirmPresenterSchedule(presenter, appState.detailModalDate, row.dataset.period, timeInput.value, location)) {
+                select.value = '';
+                timeInput.value = '';
+                refreshDateDetailRows();
+            }
             return;
         }
 

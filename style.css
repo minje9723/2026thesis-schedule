@@ -1461,31 +1461,106 @@ a {
     color: #475569;
 }
 
-/* Candidate Chips in Modal */
-.btn-candidate-chip {
-    background: #eef2ff;
-    color: #4338ca;
-    border: 1px solid #c7d2fe;
-    border-radius: 4px;
-    padding: 2px 7px;
+/* Date Detail Modal: 교수님 가능 여부 지정 + 발표자 선택 + 확정/취소 */
+.date-detail-guide {
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #475569;
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.date-detail-guide-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.date-detail-table {
+    min-width: 760px;
+}
+
+.slot-prof-cell {
+    line-height: 1;
+}
+
+/* 미지정: 점선 회색 / 참석 가능: 내부 파랑 · 외부 주황으로 채움 */
+.slot-prof-toggle {
     font-size: 0.74rem;
     font-weight: 600;
+    padding: 4px 8px;
+    margin: 2px 4px 2px 0;
+    border-radius: var(--radius-full);
+    border: 1px dashed #cbd5e1;
+    background: #ffffff;
+    color: #94a3b8;
     cursor: pointer;
-    margin: 2px 3px 2px 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
     transition: all 0.15s ease;
 }
-.btn-candidate-chip:hover {
-    background: #e0e7ff;
-    border-color: #a5b4fc;
-    transform: translateY(-1px);
+
+.slot-prof-toggle:hover {
+    border-color: #94a3b8;
+    color: #475569;
 }
-.btn-candidate-chip.is-conf {
-    background: #f1f5f9;
+
+.slot-prof-toggle.is-on.is-int {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+.slot-prof-toggle.is-on.is-ext {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.slot-presenter-select {
+    font-size: 0.8rem;
+    padding: 5px 8px;
+}
+
+.slot-candidate-count {
+    margin-top: 4px;
+    font-size: 0.72rem;
     color: #94a3b8;
-    border-color: #cbd5e1;
+}
+
+.slot-candidate-count.has-candidates {
+    color: #047857;
+    font-weight: 600;
+}
+
+/* 휴대폰: 가로 스크롤 대신 시간대마다 카드 형태로 세로 배치 */
+@media (max-width: 640px) {
+    .date-detail-table {
+        min-width: 0;
+    }
+    .date-detail-table thead {
+        display: none;
+    }
+    .date-detail-table,
+    .date-detail-table tbody,
+    .date-detail-table tr,
+    .date-detail-table td {
+        display: block;
+        width: 100%;
+    }
+    .date-detail-table tr {
+        border: 1px solid var(--surface-border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+    .date-detail-table td,
+    .date-detail-table td.center {
+        border: none;
+        padding: 3px 0;
+        text-align: left;
+    }
 }
 
 /* Recommendations */
@@ -1750,116 +1825,6 @@ a {
     text-align: center;
 }
 
-/* Professor Availability Modal Header */
-.prof-avail-header-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.prof-select-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.prof-main-select {
-    min-width: 240px;
-    font-weight: 600;
-}
-
-.prof-quick-actions {
-    display: flex;
-    gap: 8px;
-}
-
-/* Interactive Availability Selector Table */
-.avail-grid-scroll {
-    overflow: auto;
-    max-height: 440px;
-    border: 1px solid var(--surface-border);
-    border-radius: var(--radius-md);
-}
-
-.interactive-avail-table {
-    width: 100%;
-    border-collapse: collapse;
-    user-select: none;
-}
-
-.interactive-avail-table th, .interactive-avail-table td {
-    border: 1px solid var(--surface-border);
-    text-align: center;
-    padding: 5px 3px;
-    font-size: 0.78rem;
-}
-
-.interactive-avail-table th {
-    position: sticky;
-    top: 0;
-    background: var(--surface-subtle);
-    z-index: 5;
-    font-weight: 700;
-}
-
-.avail-check-cell {
-    height: 28px;
-    cursor: pointer;
-    transition: background 0.1s ease;
-}
-
-.avail-check-cell.selected {
-    background: #10b981;
-    color: #ffffff;
-    font-weight: bold;
-}
-
-.avail-check-cell.selected::after {
-    content: "✓";
-}
-
-.avail-check-cell:hover {
-    background: #e2e8f0;
-}
-
-.avail-check-cell.selected:hover {
-    background: #059669;
-}
-
-.avail-legend-bar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 12px;
-    font-size: 0.8rem;
-}
-
-.legend-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-secondary);
-}
-
-.box-sample {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    display: inline-block;
-}
-.box-sample.avail { background: #10b981; }
-.box-sample.unavail { background: #ffffff; border: 1px solid var(--surface-border-strong); }
-
-.save-status-indicator {
-    margin-left: auto;
-    font-size: 0.75rem;
-    color: #059669;
-    font-weight: 600;
-}
-
 /* Confirm Schedule Dialog */
 .confirm-lead-text {
     font-size: 0.95rem;
@@ -2039,16 +2004,6 @@ a {
         font-size: 1.15rem;
         line-height: 1.35;
         margin-bottom: 4px;
-    }
-    .sector-header-actions {
-        width: 100%;
-    }
-    .sector-header-actions .btn {
-        width: 100%;
-        justify-content: center;
-        padding: 10px;
-        font-size: 0.875rem;
-        min-height: 42px;
     }
 
     /* Mobile Professor Filter Chips - Perfectly Responsive & Non-overflowing */
@@ -2287,53 +2242,12 @@ a {
     }
 
     /* Modal Tables Horizontal Scroll Wrapper */
-    .daily-matrix-container, .avail-grid-scroll, .mobile-table-scroll-wrap {
+    .daily-matrix-container, .mobile-table-scroll-wrap {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         border-radius: 6px;
     }
 
-    .mobile-scroll-hint {
-        display: block !important;
-        font-size: 0.72rem;
-        color: #475569;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        padding: 6px 10px;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        text-align: center;
-        font-weight: 500;
-    }
-
-    /* Professor Availability Modal Header on Mobile */
-    .prof-avail-header-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-    .prof-select-group {
-        flex-direction: column;
-        align-items: flex-start;
-        width: 100%;
-    }
-    .prof-main-select {
-        width: 100%;
-        min-width: unset;
-        min-height: 40px;
-    }
-    .prof-quick-actions {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-    }
-    .prof-quick-actions .btn {
-        padding: 6px 4px;
-        font-size: 0.75rem;
-        text-align: center;
-        justify-content: center;
-    }
 }
 
 /* Extra Compact Smartphones (< 480px) */
@@ -2348,17 +2262,9 @@ a {
     .cal-day-num {
         font-size: 0.74rem;
     }
-    .input-slot-student-name {
-        width: 125px !important;
-        font-size: 15px !important;
-    }
     .btn-modal-confirm-slot {
         padding: 5px 8px !important;
         font-size: 0.76rem !important;
-    }
-    .btn-candidate-chip {
-        font-size: 0.68rem;
-        padding: 1px 4px;
     }
     .prof-filter-toolbar {
         padding: 8px 10px;

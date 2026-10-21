@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261021.1">
+    <link rel="stylesheet" href="style.css?v=20261021.2">
 </head>
 
 <body>
@@ -39,13 +39,6 @@
                     </svg>
                     홈 (교수님 캘린더)
                 </button>
-                <button id="btnOpenProfInputModal" class="btn btn-primary">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                        <circle cx="12" cy="12" r="10" />
-                        <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    교수님 가능 일정 입력
-                </button>
                 <div class="presenter-selector-box">
                     <label for="currentPresenterSelect">발표자 선택:</label>
                     <select id="currentPresenterSelect" class="styled-select">
@@ -74,15 +67,6 @@
                         </div>
                         <h2 class="sector-main-title">2026년 11월~12월 교수님들 심사 가능 캘린더</h2>
                     </div>
-                    <div class="sector-header-actions">
-                        <button id="btnInputProfAvailHero" class="btn btn-primary">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
-                                fill="none">
-                                <path d="M12 5v14M5 12h14" />
-                            </svg>
-                            교수님 가능 일정 등록/수정
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Professor Filter Bar (script.js의 PROFESSORS로 생성) -->
@@ -102,8 +86,8 @@
                             <span class="prof-initial-badge is-int">내</span> 내부
                             <span class="prof-initial-badge is-ext">외</span> 외부</span>
                         <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정</span>
-                        <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>30분 단위 시간표에서 발표자 입력 후 확정/취소</strong>가
-                            가능합니다.</span>
+                        <span class="legend-cal-tip">💡 날짜를 누르면 <strong>30분 단위로 교수님 가능 일정을 지정하고 발표자를 확정/취소</strong>할 수
+                            있습니다.</span>
                     </div>
                 </div>
 
@@ -211,14 +195,6 @@
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                         </svg>
                         심사위원 교수님 선택
-                    </button>
-                    <button id="btnQuickInput" class="btn btn-primary">
-                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
-                            fill="none">
-                            <circle cx="12" cy="12" r="10" />
-                            <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        교수님 가능 일정 입력
                     </button>
                 </div>
             </div>
@@ -369,60 +345,13 @@
         </main>
     </div>
 
-    <!-- MODAL: PROFESSOR AVAILABILITY INPUT -->
-    <div class="modal-backdrop" id="modalProfAvail">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-header">
-                <div>
-                    <h3>👨‍🏫 심사위원 교수님 가능 일정 등록 및 수정</h3>
-                    <p class="modal-subtitle">교수님을 선택하고 11월/12월 평일 중 심사 가능한 30분 시간대를 클릭/드래그하여 활성화해주세요.</p>
-                </div>
-                <button class="modal-close" data-close="modalProfAvail">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="prof-avail-header-bar">
-                    <div class="prof-select-group">
-                        <label for="selectProfTarget"><strong>교수님 선택:</strong></label>
-                        <select id="selectProfTarget" class="styled-select prof-main-select"></select>
-                    </div>
-
-                    <div class="prof-quick-actions">
-                        <button type="button" class="btn btn-sm btn-outline" id="btnProfSelectAll">전체 평일 가능</button>
-                        <button type="button" class="btn btn-sm btn-outline" id="btnProfSelectAfternoon">오후(13~18시)
-                            가능</button>
-                        <button type="button" class="btn btn-sm btn-outline" id="btnProfClear">초기화</button>
-                    </div>
-                </div>
-
-                <div class="month-subnav-modal" style="margin-top: 14px;">
-                    <button type="button" class="btn-chip active" id="modalProfChipNov">2026년 11월 일정표</button>
-                    <button type="button" class="btn-chip" id="modalProfChipDec">2026년 12월 일정표</button>
-                    <span class="modal-info-text">※ 평일 09:00 ~ 18:30 (30분 슬롯 단위)</span>
-                </div>
-
-                <div class="avail-grid-scroll">
-                    <div class="avail-table" id="profAvailTable"></div>
-                </div>
-
-                <div class="avail-legend-bar">
-                    <div class="legend-chip"><span class="box-sample avail"></span> 가능 (Available)</div>
-                    <div class="legend-chip"><span class="box-sample unavail"></span> 불가 (Unavailable)</div>
-                    <div class="save-status-indicator">선택 즉시 전체 발표자 일정에 자동 반영됩니다.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-close="modalProfAvail">입력 완료</button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL: SINGLE DATE PROFESSOR BREAKDOWN & DIRECT PRESENTER CONFIRM / CANCEL -->
     <div class="modal-backdrop" id="modalDateProfDetail">
         <div class="modal-dialog modal-xl">
             <div class="modal-header">
                 <div>
                     <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 현황 및 발표자 확정</h3>
-                    <p class="modal-subtitle">시간대별 가능한 교수님 및 발표 가능인원을 확인하고, 발표자 이름을 입력하여 직접 확정하거나 기존 확정을 취소할 수 있습니다.</p>
+                    <p class="modal-subtitle">시간대별로 참석 가능한 교수님을 지정하고, 발표자를 선택해 확정하거나 기존 확정을 취소할 수 있습니다.</p>
                 </div>
                 <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
             </div>
@@ -566,8 +495,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261021.1"></script>
-    <script src="script.js?v=20261021.1"></script>
+    <script src="firebase-config.js?v=20261021.2"></script>
+    <script src="script.js?v=20261021.2"></script>
 </body>
 
 </html>

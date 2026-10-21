@@ -513,6 +513,47 @@ a {
     background: #faf8ff;
 }
 
+/* 교수님 가능 날짜 선택 모드 */
+.prof-pick-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    font-size: 0.85rem;
+}
+
+.prof-pick-banner[hidden] {
+    display: none;
+}
+
+.prof-cal-cell.pick-mode:hover {
+    border-color: #34d399;
+}
+
+.prof-cal-cell.is-picked {
+    background: #dcfce7;
+    border-color: #4ade80;
+}
+
+.prof-cal-cell.is-partial {
+    background: #f0fdf4;
+    border-style: dashed;
+}
+
+.pick-state {
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #15803d;
+}
+
 /* ==========================================================================
    SECTOR 2: SUMMARY STATS
    ========================================================================== */

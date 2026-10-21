@@ -826,42 +826,57 @@ function renderWeekdayCalendar(grid, month, fillDayCell) {
 // 3. SECTOR 1: PROFESSORS CALENDAR (HOME OVERVIEW)
 // ==========================================================================
 
+// 홈 캘린더: '전체'일 때는 날짜를 누르면 오전/오후 현황 표,
+// 교수님 이름을 골랐을 때는 그 교수님의 가능 날짜를 바로 지정(오전·오후 구분 없이 하루 단위)
 function renderProfCalendarHero() {
     const month = appState.profCalendarMonth;
-    const filter = appState.profFilterTarget;
+    const pickProf = appState.profFilterTarget === 'all' ? null : appState.profFilterTarget;
 
     document.getElementById('btnProfNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
     document.getElementById('btnProfDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
-    renderWeekdayCalendar(document.getElementById('profCalendarGrid'), month, (cell, { dateStr, dayNum }) => {
-        let availableProfs = getProfessorsAvailableOnDate(dateStr);
-        if (filter !== 'all') {
-            availableProfs = availableProfs.filter(name => name === filter);
-        }
+    const banner = document.getElementById('profPickBanner');
+    banner.hidden = !pickProf;
+    document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
+    if (pickProf) {
+        document.getElementById('profPickText').innerHTML =
+            `📅 <strong>${pickProf}</strong> 가능 날짜 선택 중 · 날짜를 누르면 <strong>가능(오전·오후 모두)</strong> / 불가로 바뀝니다.`;
+    }
 
+    renderWeekdayCalendar(document.getElementById('profCalendarGrid'), month, (cell, { dateStr, dayNum }) => {
         const confirmedHere = appState.presenters.filter(
             p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
         );
-
-        cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''}`;
-
         const badgeHtml = confirmedHere.length > 0
             ? `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`
             : '';
 
-        let contentHtml = confirmedHere.map(item => `
-            <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
-                ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
-            </div>
-        `).join('');
+        let contentHtml = '';
+        if (pickProf) {
+            const onPeriods = PERIODS.filter(p => isProfAvailable(pickProf, `${dateStr} ${p.key}`));
+            const isFull = onPeriods.length === PERIODS.length;
+            cell.className = `cal-day-cell prof-cal-cell pick-mode ${onPeriods.length ? 'is-picked' : ''} ${onPeriods.length && !isFull ? 'is-partial' : ''}`;
+            if (onPeriods.length) {
+                contentHtml = `<div class="pick-state">${isFull ? '✓ 가능' : `${onPeriods[0].label}만 가능`}</div>`;
+            }
+        } else {
+            const availableProfs = getProfessorsAvailableOnDate(dateStr);
+            cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''}`;
 
-        // 가능 교수님은 성(Initial)만 표기, 내부(파랑)/외부(주황)는 배지 색으로 구분
-        if (availableProfs.length > 0) {
-            contentHtml += `<div class="cal-prof-initials-wrap">${availableProfs.map(pName => `
-                <span class="prof-initial-badge ${getProfType(pName) === 'external' ? 'is-ext' : 'is-int'}" title="${pName} 참석 가능">
-                    ${getProfInitial(pName)}
-                </span>
-            `).join('')}</div>`;
+            contentHtml = confirmedHere.map(item => `
+                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
+                    ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+                </div>
+            `).join('');
+
+            // 가능 교수님은 성(Initial)만 표기, 내부(파랑)/외부(주황)는 배지 색으로 구분
+            if (availableProfs.length > 0) {
+                contentHtml += `<div class="cal-prof-initials-wrap">${availableProfs.map(pName => `
+                    <span class="prof-initial-badge ${getProfType(pName) === 'external' ? 'is-ext' : 'is-int'}" title="${pName} 참석 가능">
+                        ${getProfInitial(pName)}
+                    </span>
+                `).join('')}</div>`;
+            }
         }
 
         cell.innerHTML = `
@@ -873,12 +888,26 @@ function renderProfCalendarHero() {
         `;
 
         cell.addEventListener('click', () => {
-            openDateProfDetailModal(dateStr);
+            if (pickProf) {
+                toggleProfWholeDay(pickProf, dateStr);
+                renderAll();
+            } else {
+                openDateProfDetailModal(dateStr);
+            }
         });
     });
 }
 
-// 교수님별 필터 칩 (PROFESSORS 목록으로 생성)
+// 교수님 한 분의 하루(오전·오후) 가능 여부 전환: 둘 다 가능이면 해제, 아니면 둘 다 가능으로
+function toggleProfWholeDay(profName, dateStr) {
+    const slots = PERIODS.map(p => `${dateStr} ${p.key}`);
+    const allOn = slots.every(slot => isProfAvailable(profName, slot));
+    slots.forEach(slot => {
+        if (isProfAvailable(profName, slot) === allOn) toggleProfAvailability(profName, slot);
+    });
+}
+
+// 교수님별 칩 (PROFESSORS 목록으로 생성) - 이름을 누르면 그 교수님의 가능 날짜 선택 모드
 function renderProfFilterChips() {
     const container = document.getElementById('profFilterChips');
     const chip = (value, label) =>
@@ -1014,6 +1043,9 @@ function buildDateDetailRow(dateStr, period, draft) {
 // 4. SECTOR 3: PRESENTER ROSTER & MATCHING SUMMARY
 // ==========================================================================
 
+// 명단 카드의 [일정 조율/확정 →] 버튼 (일단 숨김 · 다시 보이려면 true)
+const SHOW_ROSTER_COORDINATION_BUTTON = false;
+
 function renderPresentersSection() {
     const presenters = appState.presenters;
 
@@ -1082,9 +1114,10 @@ function renderRosterGrid(containerId, list) {
                 <button class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
                     심사위원 선택
                 </button>
+                ${SHOW_ROSTER_COORDINATION_BUTTON ? `
                 <button class="btn btn-sm btn-primary btn-jump-coordination" data-id="${p.id}">
                     일정 조율/확정 →
-                </button>
+                </button>` : ''}
             </div>
         `;
 
@@ -1894,6 +1927,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
+    });
+
+    // 교수님 가능 날짜 선택 모드 종료
+    document.getElementById('btnProfPickDone').addEventListener('click', () => {
+        appState.profFilterTarget = 'all';
+        renderProfFilterChips();
+        renderProfCalendarHero();
     });
 
     // Month toggles in Sector 1

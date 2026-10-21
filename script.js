@@ -1,33 +1,38 @@
 /**
  * 대학원 학위논문 발표 일정 조율 플랫폼 (script.js)
- * - 인당 30분 발표 배정 (30분 단위 슬롯 지원)
- * - 석사졸업/박사주제: 내부 심사위원 3인 구성
- * - 박사졸업: 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인 구성)
- * - 교수님 풀 (내부 5인, 외부 2인) 연동
+ * - 교수님 심사 가능 캘린더 (최상단 메인 섹터)
+ * - 교수님 가능 일정(30분 단위) 종합 취합 및 필터링
+ * - 발표자 심사위원단 자동 매칭 (발표자는 교수님 일정을 따라감)
+ * - 인당 30분 발표 배정 (내부 5인, 외부 2인 풀 연동)
  */
 
 // ==========================================================================
-// 1. Professor Pool & Default Roster Configuration
+// 1. Storage Keys, Professor Pool & Default Schedules
 // ==========================================================================
 
-const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v4';
-const STORAGE_KEY_AVAIL = 'thesis_sched_avail_v4';
+const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v5';
+const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v5';
+const STORAGE_KEY_STUDENT_AVAIL = 'thesis_sched_student_avail_v5';
 
-const PROFESSOR_POOL = {
+const PROFESSORS = {
     internal: [
-        "김수철 교수님",
-        "이상옥 교수님",
-        "권희홍 교수님",
-        "한민수 교수님",
-        "정용재 교수님"
+        { name: "김수철 교수님", type: "internal", classDot: "dot-prof1" },
+        { name: "이상옥 교수님", type: "internal", classDot: "dot-prof2" },
+        { name: "권희홍 교수님", type: "internal", classDot: "dot-prof3" },
+        { name: "한민수 교수님", type: "internal", classDot: "dot-prof4" },
+        { name: "정용재 교수님", type: "internal", classDot: "dot-prof5" }
     ],
     external: [
-        "정광용 교수님",
-        "조남철 교수님"
+        { name: "정광용 교수님", type: "external", classDot: "dot-prof6" },
+        { name: "조남철 교수님", type: "external", classDot: "dot-prof7" }
     ]
 };
 
-// 30-minute intervals from 09:00 to 18:30
+const ALL_PROF_NAMES = [
+    ...PROFESSORS.internal.map(p => p.name),
+    ...PROFESSORS.external.map(p => p.name)
+];
+
 const TIME_SLOTS = [
     "09:00", "09:30",
     "10:00", "10:30",
@@ -49,14 +54,15 @@ function getEndTime30Min(startTimeStr) {
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
+// 10 Presenters (박사졸업 1, 박사주제 4, 석사졸업 5)
 const DEFAULT_PRESENTERS = [
-    // 1. 박사졸업발표 (1명, 내부3 + 외부2 = 총 5인, 30분)
+    // 1. 박사졸업발표 (김민제: 내부 3 + 외부 2 = 총 5인)
     {
         id: "p_phd_1",
         name: "김민제",
         category: "박사졸업발표",
         duration: 30,
-        thesisTitle: "학위청구논문 심사",
+        thesisTitle: "학위청구논문 최종 디펜스",
         location: "세미나실 1호",
         reviewers: [
             { id: "r_p1_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
@@ -73,7 +79,7 @@ const DEFAULT_PRESENTERS = [
         }
     },
 
-    // 2. 박사주제발표 (4명, 내부 3인, 30분)
+    // 2. 박사주제발표 (4명: 내부 3인)
     {
         id: "p_prop_1",
         name: "강민지",
@@ -131,13 +137,13 @@ const DEFAULT_PRESENTERS = [
         confirmedSchedule: null
     },
 
-    // 3. 석사졸업발표 (5명, 내부 3인, 30분)
+    // 3. 석사졸업발표 (5명: 내부 3인)
     {
         id: "p_ms_1",
         name: "김동녘",
         category: "석사졸업발표",
         duration: 30,
-        thesisTitle: "석사학위 청구논문 발표",
+        thesisTitle: "석사학위 청구논문 심사",
         location: "세미나실 3호",
         reviewers: [
             { id: "r_ms1_1", name: "김수철 교수님", role: "심사위원장", type: "internal" },
@@ -151,7 +157,7 @@ const DEFAULT_PRESENTERS = [
         name: "김신기",
         category: "석사졸업발표",
         duration: 30,
-        thesisTitle: "석사학위 청구논문 발표",
+        thesisTitle: "석사학위 청구논문 심사",
         location: "세미나실 3호",
         reviewers: [
             { id: "r_ms2_1", name: "한민수 교수님", role: "심사위원장", type: "internal" },
@@ -165,7 +171,7 @@ const DEFAULT_PRESENTERS = [
         name: "김효정",
         category: "석사졸업발표",
         duration: 30,
-        thesisTitle: "석사학위 청구논문 발표",
+        thesisTitle: "석사학위 청구논문 심사",
         location: "세미나실 3호",
         reviewers: [
             { id: "r_ms3_1", name: "권희홍 교수님", role: "심사위원장", type: "internal" },
@@ -179,7 +185,7 @@ const DEFAULT_PRESENTERS = [
         name: "박혜리",
         category: "석사졸업발표",
         duration: 30,
-        thesisTitle: "석사학위 청구논문 발표",
+        thesisTitle: "석사학위 청구논문 심사",
         location: "세미나실 3호",
         reviewers: [
             { id: "r_ms4_1", name: "정용재 교수님", role: "심사위원장", type: "internal" },
@@ -193,7 +199,7 @@ const DEFAULT_PRESENTERS = [
         name: "백주은",
         category: "석사졸업발표",
         duration: 30,
-        thesisTitle: "석사학위 청구논문 발표",
+        thesisTitle: "석사학위 청구논문 심사",
         location: "세미나실 3호",
         reviewers: [
             { id: "r_ms5_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
@@ -204,48 +210,78 @@ const DEFAULT_PRESENTERS = [
     }
 ];
 
-function generateDefaultAvailability() {
+// Rich default availability for all 7 professors in 2026 Nov & Dec
+function generateDefaultProfAvailability() {
     return {
-        "p_phd_1": {
-            "p_phd_1": ["2026-11-20 14:00", "2026-11-20 14:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-12-04 14:00"],
-            "r_p1_1": ["2026-11-27 14:00", "2026-11-27 14:30", "2026-12-04 14:00"],
-            "r_p1_2": ["2026-11-20 14:00", "2026-11-27 14:00", "2026-11-27 14:30"],
-            "r_p1_3": ["2026-11-27 14:00", "2026-11-27 14:30"],
-            "r_p1_4": ["2026-11-27 14:00", "2026-11-27 14:30"],
-            "r_p1_5": ["2026-11-27 14:00", "2026-11-27 14:30"]
-        },
-        "p_ms_1": {
-            "p_ms_1": ["2026-11-19 10:00", "2026-11-19 10:30", "2026-11-26 14:00", "2026-11-26 14:30"],
-            "r_ms1_1": ["2026-11-19 10:00", "2026-11-19 10:30"],
-            "r_ms1_2": ["2026-11-19 10:00", "2026-11-19 10:30", "2026-11-26 14:00"],
-            "r_ms1_3": ["2026-11-19 10:00", "2026-11-19 10:30"]
-        }
+        "김수철 교수님": [
+            "2026-11-19 14:00", "2026-11-19 14:30", "2026-11-19 15:00", "2026-11-19 15:30",
+            "2026-11-20 13:30", "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
+            "2026-11-26 14:00", "2026-11-26 14:30", "2026-11-26 15:00",
+            "2026-11-27 13:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
+            "2026-12-04 14:00", "2026-12-04 14:30", "2026-12-04 15:00"
+        ],
+        "이상옥 교수님": [
+            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
+            "2026-11-25 10:00", "2026-11-25 10:30", "2026-11-25 11:00",
+            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
+            "2026-12-04 14:00", "2026-12-04 14:30"
+        ],
+        "권희홍 교수님": [
+            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 14:00", "2026-11-19 14:30",
+            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
+            "2026-11-26 14:00", "2026-11-26 14:30",
+            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
+            "2026-12-04 14:00", "2026-12-04 14:30"
+        ],
+        "한민수 교수님": [
+            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 11:00",
+            "2026-11-24 14:00", "2026-11-24 14:30", "2026-11-24 15:00",
+            "2026-11-26 14:00", "2026-11-26 14:30",
+            "2026-12-01 14:00", "2026-12-01 14:30", "2026-12-01 15:00"
+        ],
+        "정용재 교수님": [
+            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 14:00", "2026-11-19 14:30",
+            "2026-11-24 14:00", "2026-11-24 14:30",
+            "2026-11-26 14:00", "2026-11-26 14:30",
+            "2026-12-01 14:00", "2026-12-01 14:30"
+        ],
+        "정광용 교수님": [
+            "2026-11-27 13:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
+            "2026-12-04 14:00", "2026-12-04 14:30"
+        ],
+        "조남철 교수님": [
+            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
+            "2026-12-04 14:00", "2026-12-04 14:30"
+        ]
     };
 }
 
 let appState = {
     presenters: [],
-    availability: {},
+    profAvailability: {},
+    studentAvailability: {},
     activePage: 'home',
     currentPresenterId: 'p_phd_1',
     currentSubView: 'month',
     calendarYear: 2026,
-    calendarMonth: 11,
-    masterCalendarMonth: 11,
+    profCalendarMonth: 11, // 11 (Nov) or 12 (Dec)
+    profFilterTarget: 'all', // 'all' or professor's exact name
     currentDayDate: '2026-11-27',
     currentWeekIndex: 0,
-    modalAvailMonth: 11,
-    modalAvailTargetPersonId: null
+    modalProfInputMonth: 11,
+    modalProfTargetName: "김수철 교수님"
 };
 
 function loadState() {
     try {
         const savedPresenters = localStorage.getItem(STORAGE_KEY_PRESENTERS);
-        const savedAvail = localStorage.getItem(STORAGE_KEY_AVAIL);
+        const savedProfAvail = localStorage.getItem(STORAGE_KEY_PROF_AVAIL);
+        const savedStudentAvail = localStorage.getItem(STORAGE_KEY_STUDENT_AVAIL);
 
-        if (savedPresenters && savedAvail) {
+        if (savedPresenters && savedProfAvail) {
             appState.presenters = JSON.parse(savedPresenters);
-            appState.availability = JSON.parse(savedAvail);
+            appState.profAvailability = JSON.parse(savedProfAvail);
+            appState.studentAvailability = savedStudentAvail ? JSON.parse(savedStudentAvail) : {};
         } else {
             resetToSampleData();
             return;
@@ -263,47 +299,37 @@ function loadState() {
 
 function saveState() {
     localStorage.setItem(STORAGE_KEY_PRESENTERS, JSON.stringify(appState.presenters));
-    localStorage.setItem(STORAGE_KEY_AVAIL, JSON.stringify(appState.availability));
+    localStorage.setItem(STORAGE_KEY_PROF_AVAIL, JSON.stringify(appState.profAvailability));
+    localStorage.setItem(STORAGE_KEY_STUDENT_AVAIL, JSON.stringify(appState.studentAvailability));
 }
 
 function resetToSampleData() {
     appState.presenters = JSON.parse(JSON.stringify(DEFAULT_PRESENTERS));
-    appState.availability = generateDefaultAvailability();
+    appState.profAvailability = generateDefaultProfAvailability();
+    appState.studentAvailability = {};
     appState.currentPresenterId = "p_phd_1";
     saveState();
 }
 
 // ==========================================================================
-// 2. Helper Functions (Dates, Slots, Matching)
+// 2. Helper Functions (Professor Schedules & Student Matching)
 // ==========================================================================
 
 function getCurrentPresenter() {
     return appState.presenters.find(p => p.id === appState.currentPresenterId) || appState.presenters[0];
 }
 
-function getAllParticipants(presenter) {
-    if (!presenter) return [];
-    return [
-        { id: presenter.id, name: `${presenter.name} (발표자)`, role: "발표자" },
-        ...(presenter.reviewers || [])
-    ];
+function isProfAvailable(profName, dateTimeStr) {
+    const list = appState.profAvailability[profName];
+    if (!list) return false;
+    return list.includes(dateTimeStr);
 }
 
-function isSlotAvailable(presenterId, personId, dateTimeStr) {
-    const pAvail = appState.availability[presenterId];
-    if (!pAvail || !pAvail[personId]) return false;
-    return pAvail[personId].includes(dateTimeStr);
-}
-
-function toggleSlotAvailability(presenterId, personId, dateTimeStr) {
-    if (!appState.availability[presenterId]) {
-        appState.availability[presenterId] = {};
+function toggleProfAvailability(profName, dateTimeStr) {
+    if (!appState.profAvailability[profName]) {
+        appState.profAvailability[profName] = [];
     }
-    if (!appState.availability[presenterId][personId]) {
-        appState.availability[presenterId][personId] = [];
-    }
-
-    const list = appState.availability[presenterId][personId];
+    const list = appState.profAvailability[profName];
     const idx = list.indexOf(dateTimeStr);
     if (idx >= 0) {
         list.splice(idx, 1);
@@ -313,22 +339,41 @@ function toggleSlotAvailability(presenterId, personId, dateTimeStr) {
     saveState();
 }
 
-function analyzeSlot(presenter, dateTimeStr) {
-    const participants = getAllParticipants(presenter);
-    const total = participants.length;
+function getAvailableProfessorsAt(dateTimeStr) {
+    return ALL_PROF_NAMES.filter(name => isProfAvailable(name, dateTimeStr));
+}
+
+/**
+ * Checks which professors are available on a specific date (any 30-min slot)
+ */
+function getProfessorsAvailableOnDate(dateStr) {
+    const activeProfs = [];
+    ALL_PROF_NAMES.forEach(pName => {
+        const slots = appState.profAvailability[pName] || [];
+        const hasSlot = slots.some(s => s.startsWith(dateStr));
+        if (hasSlot) activeProfs.push(pName);
+    });
+    return activeProfs;
+}
+
+/**
+ * Checks a specific student's committee matching at dateTimeStr
+ * Since students follow professors' schedules:
+ * A slot is matched if ALL reviewers assigned to this student are available!
+ */
+function analyzeSlotForStudent(presenter, dateTimeStr) {
+    const reviewers = presenter.reviewers || [];
+    const total = reviewers.length;
     let availableCount = 0;
     const availableNames = [];
     const unavailableNames = [];
-    let isPresenterAvail = false;
 
-    participants.forEach(person => {
-        const avail = isSlotAvailable(presenter.id, person.id, dateTimeStr);
-        if (avail) {
+    reviewers.forEach(r => {
+        if (isProfAvailable(r.name, dateTimeStr)) {
             availableCount++;
-            availableNames.push(person.name);
-            if (person.id === presenter.id) isPresenterAvail = true;
+            availableNames.push(r.name);
         } else {
-            unavailableNames.push(person.name);
+            unavailableNames.push(r.name);
         }
     });
 
@@ -336,7 +381,6 @@ function analyzeSlot(presenter, dateTimeStr) {
     return {
         total,
         availableCount,
-        isPresenterAvail,
         isAllMatch,
         ratio: total > 0 ? (availableCount / total) : 0,
         availableNames,
@@ -344,40 +388,253 @@ function analyzeSlot(presenter, dateTimeStr) {
     };
 }
 
-function analyzeDate(presenter, dateStr) {
-    let goldenSlotCount = 0;
-    let majoritySlotCount = 0;
-    let anySlotCount = 0;
-
+/**
+ * Counts golden slots (all committee available) for a student on a specific date
+ */
+function countStudentGoldenSlotsOnDate(presenter, dateStr) {
+    let count = 0;
     TIME_SLOTS.forEach(time => {
-        const dateTimeStr = `${dateStr} ${time}`;
-        const res = analyzeSlot(presenter, dateTimeStr);
-        if (res.isAllMatch) {
-            goldenSlotCount++;
-        } else if (res.ratio >= 0.5) {
-            majoritySlotCount++;
-        }
-        if (res.availableCount > 0) {
-            anySlotCount++;
+        const dt = `${dateStr} ${time}`;
+        if (analyzeSlotForStudent(presenter, dt).isAllMatch) {
+            count++;
         }
     });
-
-    const isConfirmed = presenter.confirmedSchedule && presenter.confirmedSchedule.date === dateStr;
-
-    return {
-        dateStr,
-        goldenSlotCount,
-        majoritySlotCount,
-        anySlotCount,
-        isConfirmed
-    };
+    return count;
 }
 
 // ==========================================================================
-// 3. PAGE 1: HOME OVERVIEW DASHBOARD
+// 3. SECTOR 1: 2026.11~12 PROFESSORS CALENDAR (HOME OVERVIEW)
 // ==========================================================================
 
-function renderHomeOverview() {
+function renderProfCalendarHero() {
+    const year = 2026;
+    const month = appState.profCalendarMonth; // 11 or 12
+    const filter = appState.profFilterTarget; // 'all' or professor's name
+    const grid = document.getElementById('profCalendarGrid');
+    grid.innerHTML = '';
+
+    document.getElementById('btnProfNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
+    document.getElementById('btnProfDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
+
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const prevMonthDays = new Date(year, month - 1, 0).getDate();
+
+    // 1. Prev month filler
+    for (let i = firstDay - 1; i >= 0; i--) {
+        const dNum = prevMonthDays - i;
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell other-month';
+        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${dNum}</span></div>`;
+        grid.appendChild(cell);
+    }
+
+    // 2. Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = new Date(year, month - 1, d).getDay();
+
+        // Check professors available on this date
+        let availableProfs = getProfessorsAvailableOnDate(dateStr);
+        if (filter !== 'all') {
+            availableProfs = availableProfs.filter(name => name === filter);
+        }
+
+        // Check if any student has a confirmed defense on this date
+        const confirmedHere = appState.presenters.filter(
+            p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
+        );
+
+        // Check if any student has a golden slot here
+        let studentGoldenCount = 0;
+        appState.presenters.forEach(p => {
+            if (countStudentGoldenSlotsOnDate(p, dateStr) > 0) studentGoldenCount++;
+        });
+
+        const cell = document.createElement('div');
+        let classes = 'cal-day-cell prof-cal-cell';
+        if (dayOfWeek === 0) classes += ' is-sun';
+        if (dayOfWeek === 6) classes += ' is-sat';
+        if (confirmedHere.length > 0) classes += ' has-confirmed';
+        cell.className = classes;
+
+        let badgeHtml = '';
+        if (confirmedHere.length > 0) {
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">${confirmedHere.length}명 확정</span>`;
+        } else if (availableProfs.length >= 4) {
+            badgeHtml = `<span class="cal-day-badge badge-golden">교수 ${availableProfs.length}인 가능</span>`;
+        } else if (availableProfs.length > 0) {
+            badgeHtml = `<span class="cal-day-badge badge-majority">교수 ${availableProfs.length}인</span>`;
+        }
+
+        // Chips for professors
+        let chipsHtml = '';
+
+        // Show confirmed student defenses first
+        confirmedHere.forEach(item => {
+            const end = getEndTime30Min(item.confirmedSchedule.time);
+            chipsHtml += `
+                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time}~${end} 심사 확정">
+                    ⭐ ${item.name} (${item.confirmedSchedule.time}~${end})
+                </div>
+            `;
+        });
+
+        // Show professors available chips
+        availableProfs.slice(0, 3).forEach(pName => {
+            const isExternal = pName.includes('정광용') || pName.includes('조남철');
+            const shortName = pName.replace(' 교수님', '');
+            chipsHtml += `
+                <div class="cal-slot-chip ${isExternal ? 'prof-chip-ext' : 'prof-chip-int'}">
+                    <span class="chip-mini-dot"></span>${shortName}
+                </div>
+            `;
+        });
+
+        if (availableProfs.length > 3) {
+            chipsHtml += `<div class="cal-slot-chip" style="font-size:0.68rem; color:#64748b;">외 ${availableProfs.length - 3}인 교수님 가능</div>`;
+        }
+
+        let footerText = '';
+        if (availableProfs.length > 0) {
+            footerText = studentGoldenCount > 0
+                ? `<span style="color:#059669; font-weight:600;">발표 매칭 ${studentGoldenCount}명 가능</span>`
+                : `<span style="color:#64748b;">교수님 일정 있음</span>`;
+        } else {
+            footerText = `<span style="color:#cbd5e1;">일정 없음</span>`;
+        }
+
+        cell.innerHTML = `
+            <div class="cal-day-header">
+                <span class="cal-day-num">${d}</span>
+                ${badgeHtml}
+            </div>
+            <div class="cal-day-content">${chipsHtml}</div>
+            <div class="cal-day-footer">${footerText}</div>
+        `;
+
+        // Click on day to open detailed 30-min professor breakdown modal!
+        cell.addEventListener('click', () => {
+            openDateProfDetailModal(dateStr);
+        });
+
+        grid.appendChild(cell);
+    }
+
+    // 3. Next month filler
+    const totalRendered = firstDay + daysInMonth;
+    const remaining = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
+    for (let j = 1; j <= remaining; j++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell other-month';
+        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${j}</span></div>`;
+        grid.appendChild(cell);
+    }
+}
+
+/**
+ * MODAL: SINGLE DATE 30-MIN PROFESSOR BREAKDOWN
+ */
+function openDateProfDetailModal(dateStr) {
+    const modal = document.getElementById('modalDateProfDetail');
+    const [y, m, d] = dateStr.split('-');
+    const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+
+    document.getElementById('dateProfDetailTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일) 교수님별 심사 가능 현황`;
+
+    const container = document.getElementById('dateProfDetailContent');
+
+    let tableHtml = `
+        <table class="daily-table" style="min-width: 100%;">
+            <thead>
+                <tr>
+                    <th style="width: 110px;" class="center">30분 슬롯</th>
+                    <th>가능한 교수님 명단</th>
+                    <th style="width: 160px;" class="center">발표 가능 대상자</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    TIME_SLOTS.forEach(time => {
+        const endTime = getEndTime30Min(time);
+        const dt = `${dateStr} ${time}`;
+        const activeProfs = getAvailableProfessorsAt(dt);
+
+        // Check which students can defend at this slot (all their reviewers available)
+        const matchedStudents = [];
+        appState.presenters.forEach(p => {
+            if (analyzeSlotForStudent(p, dt).isAllMatch) {
+                matchedStudents.push(p);
+            }
+        });
+
+        // Check if any student has confirmed here
+        const confirmedHere = appState.presenters.find(
+            p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr && p.confirmedSchedule.time === time
+        );
+
+        let rowClass = 'daily-time-row';
+        if (confirmedHere) rowClass += ' is-confirmed-row';
+        else if (matchedStudents.length > 0) rowClass += ' golden-row';
+
+        let profTagsHtml = '';
+        if (activeProfs.length > 0) {
+            profTagsHtml = activeProfs.map(name => {
+                const isExt = name.includes('정광용') || name.includes('조남철');
+                return `<span class="${isExt ? 'badge-tag-external-xs' : 'badge-tag-internal-xs'}" style="margin-right:4px;">${name.replace(' 교수님', '')}</span>`;
+            }).join('');
+        } else {
+            profTagsHtml = `<span style="color:#94a3b8; font-size:0.8rem;">가능한 교수님 없음</span>`;
+        }
+
+        let studentColHtml = '';
+        if (confirmedHere) {
+            studentColHtml = `<span class="status-badge confirmed">⭐ ${confirmedHere.name} 심사 확정</span>`;
+        } else if (matchedStudents.length > 0) {
+            studentColHtml = matchedStudents.map(s => `
+                <button class="btn btn-sm btn-success btn-jump-student-slot" data-id="${s.id}" data-date="${dateStr}" data-time="${time}" style="margin:2px; font-size:0.75rem;">
+                    ${s.name} 확정하기
+                </button>
+            `).join('');
+        } else {
+            studentColHtml = `<span style="color:#cbd5e1; font-size:0.75rem;">-</span>`;
+        }
+
+        tableHtml += `
+            <tr class="${rowClass}">
+                <td class="center" style="font-weight:700; font-size:0.8rem;">${time} ~ ${endTime}</td>
+                <td>${profTagsHtml}</td>
+                <td class="center">${studentColHtml}</td>
+            </tr>
+        `;
+    });
+
+    tableHtml += `</tbody></table>`;
+    container.innerHTML = tableHtml;
+
+    container.querySelectorAll('.btn-jump-student-slot').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const studentId = btn.getAttribute('data-id');
+            const d = btn.getAttribute('data-date');
+            const t = btn.getAttribute('data-time');
+            closeModal('modalDateProfDetail');
+            const target = appState.presenters.find(p => p.id === studentId);
+            if (target) {
+                openConfirmModal(target, d, t);
+            }
+        });
+    });
+
+    modal.classList.add('active');
+}
+
+// ==========================================================================
+// 4. SECTOR 3: 10 PRESENTER ROSTER & MATCHING SUMMARY
+// ==========================================================================
+
+function renderPresentersSection() {
     const presenters = appState.presenters;
 
     const phdGradList = presenters.filter(p => p.category === '박사졸업발표');
@@ -394,8 +651,6 @@ function renderHomeOverview() {
     renderRosterGrid('rosterPhdGrad', phdGradList);
     renderRosterGrid('rosterPhdProp', phdPropList);
     renderRosterGrid('rosterMsGrad', msList);
-
-    renderMasterCalendar();
 }
 
 function renderRosterGrid(containerId, list) {
@@ -404,9 +659,17 @@ function renderRosterGrid(containerId, list) {
 
     list.forEach(p => {
         const reviewers = p.reviewers || [];
-        const requiredCount = p.category === '박사졸업발표' ? 5 : 3;
-        const hasEnoughReviewers = reviewers.length >= requiredCount;
         const isConfirmed = p.confirmedSchedule !== null;
+
+        // Calculate total golden 30-min slots across Nov and Dec for this student!
+        let totalGoldenSlots = 0;
+        [11, 12].forEach(m => {
+            const daysInMonth = new Date(2026, m, 0).getDate();
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                totalGoldenSlots += countStudentGoldenSlotsOnDate(p, dateStr);
+            }
+        });
 
         const card = document.createElement('div');
         card.className = `roster-card ${isConfirmed ? 'is-confirmed-card' : ''}`;
@@ -415,19 +678,15 @@ function renderRosterGrid(containerId, list) {
         if (isConfirmed) {
             const endTime = getEndTime30Min(p.confirmedSchedule.time);
             statusBadgeHtml = `<span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} (${p.confirmedSchedule.time}~${endTime}) 확정</span>`;
-        } else if (hasEnoughReviewers) {
-            statusBadgeHtml = `<span class="status-badge">조율 진행중</span>`;
+        } else if (totalGoldenSlots > 0) {
+            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 ${totalGoldenSlots}개 슬롯 발견</span>`;
         } else {
-            statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
+            statusBadgeHtml = `<span class="status-badge">교수님 일정 취합중</span>`;
         }
 
-        let reviewerPreview = '';
-        if (reviewers.length > 0) {
-            const listStr = reviewers.map(r => `${r.role}:${r.name.replace(' 교수님', '')}`).join(', ');
-            reviewerPreview = `<strong>심사위원 ${reviewers.length}인:</strong> ${listStr}`;
-        } else {
-            reviewerPreview = '<span style="color:#ef4444;">※ 심사위원 교수님이 아직 지정되지 않았습니다.</span>';
-        }
+        let reviewerListStr = reviewers.length > 0
+            ? reviewers.map(r => `${r.role}:${r.name.replace(' 교수님', '')}`).join(', ')
+            : '미등록';
 
         card.innerHTML = `
             <div class="roster-card-header">
@@ -439,15 +698,15 @@ function renderRosterGrid(containerId, list) {
             </div>
 
             <div class="roster-reviewer-preview">
-                ${reviewerPreview}
+                <strong>심사위원단 (${reviewers.length}인):</strong> ${reviewerListStr}
             </div>
 
             <div class="roster-card-actions">
                 <button class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
-                    심사위원 선택/수정
+                    심사위원 선택
                 </button>
                 <button class="btn btn-sm btn-primary btn-jump-coordination" data-id="${p.id}">
-                    30분 일정 조율 →
+                    30분 슬롯 예약/확정 →
                 </button>
             </div>
         `;
@@ -472,97 +731,8 @@ function renderRosterGrid(containerId, list) {
     });
 }
 
-function renderMasterCalendar() {
-    const year = 2026;
-    const month = appState.masterCalendarMonth;
-    const grid = document.getElementById('masterCalendarGrid');
-    grid.innerHTML = '';
-
-    document.getElementById('btnMasterNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
-    document.getElementById('btnMasterDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
-
-    const firstDay = new Date(year, month - 1, 1).getDay();
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const prevMonthDays = new Date(year, month - 1, 0).getDate();
-
-    for (let i = firstDay - 1; i >= 0; i--) {
-        const dNum = prevMonthDays - i;
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${dNum}</span></div>`;
-        grid.appendChild(cell);
-    }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(year, month - 1, d).getDay();
-
-        const confirmedHere = appState.presenters.filter(
-            p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
-        );
-
-        const goldenHere = [];
-        appState.presenters.forEach(p => {
-            if (!p.confirmedSchedule || p.confirmedSchedule.date !== dateStr) {
-                const res = analyzeDate(p, dateStr);
-                if (res.goldenSlotCount > 0) {
-                    goldenHere.push({ presenter: p, count: res.goldenSlotCount });
-                }
-            }
-        });
-
-        const cell = document.createElement('div');
-        let classes = 'cal-day-cell master-cal-cell';
-        if (dayOfWeek === 0) classes += ' is-sun';
-        if (dayOfWeek === 6) classes += ' is-sat';
-        if (confirmedHere.length > 0) classes += ' has-confirmed';
-        cell.className = classes;
-
-        let chipsHtml = '';
-        confirmedHere.forEach(item => {
-            const end = getEndTime30Min(item.confirmedSchedule.time);
-            chipsHtml += `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time}~${end} 확정">
-                    ⭐ ${item.name} (${item.confirmedSchedule.time}~${end})
-                </div>
-            `;
-        });
-
-        goldenHere.slice(0, 2).forEach(item => {
-            chipsHtml += `
-                <div class="cal-slot-chip golden" title="${item.presenter.name} 심사위원 전원 가능 30분 슬롯 ${item.count}개">
-                    ✓ ${item.presenter.name} 가능 (${item.count}개)
-                </div>
-            `;
-        });
-
-        if (goldenHere.length > 2) {
-            chipsHtml += `<div class="cal-slot-chip" style="font-size:0.68rem; color:#64748b;">외 ${goldenHere.length - 2}명 가능</div>`;
-        }
-
-        cell.innerHTML = `
-            <div class="cal-day-header">
-                <span class="cal-day-num">${d}</span>
-                ${confirmedHere.length > 0 ? `<span class="cal-day-badge badge-confirmed">${confirmedHere.length}건 확정</span>` : ''}
-            </div>
-            <div class="cal-day-content">${chipsHtml}</div>
-        `;
-
-        grid.appendChild(cell);
-    }
-
-    const totalRendered = firstDay + daysInMonth;
-    const remaining = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
-    for (let j = 1; j <= remaining; j++) {
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${j}</span></div>`;
-        grid.appendChild(cell);
-    }
-}
-
 // ==========================================================================
-// 4. PAGE 2: INDIVIDUAL PRESENTER COORDINATION VIEW
+// 5. PAGE 2: INDIVIDUAL PRESENTER COORDINATION
 // ==========================================================================
 
 function navigateToPresenter(presenterId) {
@@ -611,7 +781,7 @@ function updateDetailBanner() {
     if (!presenter) return;
 
     document.getElementById('bannerDegree').textContent = presenter.category;
-    document.getElementById('bannerThesis').textContent = `발표자: ${presenter.name} (${presenter.thesisTitle || '학위논문 발표'})`;
+    document.getElementById('bannerThesis').textContent = `발표자: ${presenter.name} (${presenter.thesisTitle || '학위청구논문 발표'})`;
     document.getElementById('bannerDuration').textContent = `인당 30분`;
     document.getElementById('bannerLocation').textContent = presenter.location || "세미나실 1호";
 
@@ -635,24 +805,13 @@ function updateDetailBanner() {
     tagsContainer.innerHTML = `
         <div class="committee-title-row">
             <span>심사위원단 (${reviewers.length}인)</span>
-            <span>입력현황</span>
+            <span>교수님 일정 현황</span>
         </div>
     `;
 
-    const pAvail = appState.availability[presenter.id] || {};
-
-    if (reviewers.length === 0) {
-        tagsContainer.innerHTML += `
-            <div style="font-size:0.8rem; color:#ef4444; padding:8px 0;">
-                아직 등록된 심사위원이 없습니다.<br>
-                상단의 [심사위원 선택/수정] 버튼을 눌러주세요.
-            </div>
-        `;
-        return;
-    }
-
     reviewers.forEach(r => {
-        const hasInput = pAvail[r.id] && pAvail[r.id].length > 0;
+        const pSlots = appState.profAvailability[r.name] || [];
+        const hasInput = pSlots.length > 0;
         let roleClass = 'role-member';
         if (r.role.includes('위원장')) roleClass = 'role-chair';
         else if (r.role.includes('지도')) roleClass = 'role-advisor';
@@ -667,15 +826,12 @@ function updateDetailBanner() {
                 <span class="member-role-tag ${roleClass}">${r.role}</span>
                 <strong>${r.name}</strong>
             </div>
-            <span class="avail-state-dot ${hasInput ? 'dot-done' : 'dot-pending'}" title="${hasInput ? '일정 입력 완료' : '미입력'}"></span>
+            <span class="avail-state-dot ${hasInput ? 'dot-done' : 'dot-pending'}" title="${hasInput ? '가능 일정 입력됨' : '미입력'}"></span>
         `;
         tagsContainer.appendChild(chip);
     });
 }
 
-/**
- * INDIVIDUAL SUBVIEW 1: MONTHLY CALENDAR
- */
 function renderMonthlyCalendar() {
     const presenter = getCurrentPresenter();
     const year = 2026;
@@ -703,31 +859,30 @@ function renderMonthlyCalendar() {
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayOfWeek = new Date(year, month - 1, d).getDay();
-        const dateAnalysis = analyzeDate(presenter, dateStr);
+        const goldenCount = countStudentGoldenSlotsOnDate(presenter, dateStr);
+        const isConfirmed = presenter.confirmedSchedule && presenter.confirmedSchedule.date === dateStr;
 
         const cell = document.createElement('div');
         let classes = 'cal-day-cell';
         if (dayOfWeek === 0) classes += ' is-sun';
         if (dayOfWeek === 6) classes += ' is-sat';
-        if (dateAnalysis.isConfirmed) classes += ' confirmed-day';
+        if (isConfirmed) classes += ' confirmed-day';
         cell.className = classes;
 
         let badgeHtml = '';
-        if (dateAnalysis.isConfirmed) {
+        if (isConfirmed) {
             badgeHtml = `<span class="cal-day-badge badge-confirmed">30분 확정</span>`;
-        } else if (dateAnalysis.goldenSlotCount > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능 ${dateAnalysis.goldenSlotCount}건</span>`;
-        } else if (dateAnalysis.majoritySlotCount > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-majority">과반 가능</span>`;
+        } else if (goldenCount > 0) {
+            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능 ${goldenCount}건</span>`;
         }
 
         let chipsHtml = '';
-        if (dateAnalysis.isConfirmed) {
+        if (isConfirmed) {
             const end = getEndTime30Min(presenter.confirmedSchedule.time);
             chipsHtml += `<div class="cal-slot-chip confirmed-chip">⭐ ${presenter.confirmedSchedule.time}~${end} 심사</div>`;
-        } else if (dateAnalysis.goldenSlotCount > 0) {
+        } else if (goldenCount > 0) {
             TIME_SLOTS.forEach(time => {
-                if (analyzeSlot(presenter, `${dateStr} ${time}`).isAllMatch && chipsHtml === '') {
+                if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch && chipsHtml === '') {
                     const end = getEndTime30Min(time);
                     chipsHtml += `<div class="cal-slot-chip golden">✓ ${time}~${end} 전원 일치</div>`;
                 }
@@ -741,7 +896,7 @@ function renderMonthlyCalendar() {
             </div>
             <div class="cal-day-content">${chipsHtml}</div>
             <div class="cal-day-footer">
-                ${dateAnalysis.anySlotCount > 0 ? `가능 슬롯 ${dateAnalysis.anySlotCount}개` : '<span style="color:#cbd5e1;">일정 없음</span>'}
+                ${goldenCount > 0 ? `가능 슬롯 ${goldenCount}개` : '<span style="color:#cbd5e1;">가능 일정 없음</span>'}
             </div>
         `;
 
@@ -763,9 +918,6 @@ function renderMonthlyCalendar() {
     }
 }
 
-/**
- * INDIVIDUAL SUBVIEW 2: WEEKLY TIMETABLE (30 MIN SLOTS)
- */
 function getAllWeeks() {
     const weeks = [];
     let curDate = new Date(2026, 10, 1);
@@ -838,7 +990,7 @@ function renderWeeklyTimetable() {
 
         displayDays.forEach(d => {
             const dateTimeStr = `${d.dateStr} ${time}`;
-            const analysis = analyzeSlot(presenter, dateTimeStr);
+            const analysis = analyzeSlotForStudent(presenter, dateTimeStr);
             const isConfirmed = presenter.confirmedSchedule &&
                                 presenter.confirmedSchedule.date === d.dateStr &&
                                 presenter.confirmedSchedule.time === time;
@@ -852,9 +1004,6 @@ function renderWeeklyTimetable() {
             } else if (analysis.isAllMatch) {
                 cellClass += ' slot-all';
                 cellContent = `<span class="slot-inner-badge">✓ 전원 가능 (${analysis.total}/${analysis.total})</span>`;
-            } else if (analysis.ratio >= 0.6) {
-                cellClass += ' slot-most';
-                cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
             } else if (analysis.availableCount > 0) {
                 cellClass += ' slot-partial';
                 cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
@@ -863,7 +1012,7 @@ function renderWeeklyTimetable() {
                 cellContent = `<span style="font-size:0.7rem; color:#cbd5e1;">-</span>`;
             }
 
-            const tooltip = `[${dateTimeStr} ~ ${endTime}]\n가능: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
+            const tooltip = `[${dateTimeStr} ~ ${endTime}]\n가능 교수님: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
 
             tableHtml += `
                 <td class="${cellClass}" title="${tooltip}" data-datetime="${dateTimeStr}">
@@ -890,9 +1039,6 @@ function renderWeeklyTimetable() {
     });
 }
 
-/**
- * INDIVIDUAL SUBVIEW 3: DAILY DETAIL (30-MIN SLOTS)
- */
 function renderDailyDetail() {
     const presenter = getCurrentPresenter();
     const dateStr = appState.currentDayDate;
@@ -903,18 +1049,18 @@ function renderDailyDetail() {
     document.getElementById('currentDayTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일)`;
     document.getElementById('directDatePicker').value = dateStr;
 
-    const participants = getAllParticipants(presenter);
+    const reviewers = presenter.reviewers || [];
     const matrixContainer = document.getElementById('dailyMatrix');
 
     let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 110px;" class="center">30분 슬롯</th>`;
 
-    participants.forEach(p => {
-        const typeBadge = p.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : (p.type === 'internal' ? '<span class="badge-tag-internal-xs">내부</span>' : '');
+    reviewers.forEach(r => {
+        const typeBadge = r.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : '<span class="badge-tag-internal-xs">내부</span>';
         tableHtml += `
             <th>
                 <div class="daily-person-header">
-                    <span>${typeBadge} ${p.name}</span>
-                    <span class="p-role">${p.role}</span>
+                    <span>${typeBadge} ${r.name}</span>
+                    <span class="p-role">${r.role}</span>
                 </div>
             </th>
         `;
@@ -931,7 +1077,7 @@ function renderDailyDetail() {
     TIME_SLOTS.forEach(time => {
         const endTime = getEndTime30Min(time);
         const dateTimeStr = `${dateStr} ${time}`;
-        const analysis = analyzeSlot(presenter, dateTimeStr);
+        const analysis = analyzeSlotForStudent(presenter, dateTimeStr);
         const isConfirmed = presenter.confirmedSchedule &&
                             presenter.confirmedSchedule.date === dateStr &&
                             presenter.confirmedSchedule.time === time;
@@ -943,14 +1089,14 @@ function renderDailyDetail() {
                 <td class="center" style="font-weight:700; font-size:0.8rem;">${time} ~ ${endTime}</td>
         `;
 
-        participants.forEach(p => {
-            const avail = isSlotAvailable(presenter.id, p.id, dateTimeStr);
+        reviewers.forEach(r => {
+            const avail = isProfAvailable(r.name, dateTimeStr);
             tableHtml += `
                 <td>
                     <button class="daily-cell-btn ${avail ? 'status-yes' : 'status-no'}" 
-                            data-person-id="${p.id}" 
+                            data-prof-name="${r.name}" 
                             data-datetime="${dateTimeStr}">
-                        ${avail ? '✓ 가능' : '— 불가'}
+                        ${avail ? '✓ 참석 가능' : '— 불가'}
                     </button>
                 </td>
             `;
@@ -990,12 +1136,12 @@ function renderDailyDetail() {
 
     matrixContainer.querySelectorAll('.daily-cell-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const personId = btn.getAttribute('data-person-id');
+            const pName = btn.getAttribute('data-prof-name');
             const dt = btn.getAttribute('data-datetime');
-            toggleSlotAvailability(presenter.id, personId, dt);
+            toggleProfAvailability(pName, dt);
             renderDailyDetail();
             updateDetailBanner();
-            showToast("30분 슬롯 일정이 즉시 반영되었습니다.");
+            showToast(`${pName}의 일정이 수정되었습니다.`);
         });
     });
 
@@ -1008,9 +1154,6 @@ function renderDailyDetail() {
     });
 }
 
-/**
- * INDIVIDUAL SUBVIEW 4: RECOMMENDATIONS (30-MIN SLOTS)
- */
 function renderRecommendations() {
     const presenter = getCurrentPresenter();
     const container = document.getElementById('recommendationsList');
@@ -1024,7 +1167,7 @@ function renderRecommendations() {
             const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             TIME_SLOTS.forEach(time => {
                 const dt = `${dateStr} ${time}`;
-                const analysis = analyzeSlot(presenter, dt);
+                const analysis = analyzeSlotForStudent(presenter, dt);
                 if (analysis.isAllMatch) {
                     matchedSlots.push({ dateStr, time, dateTimeStr: dt, analysis });
                 }
@@ -1037,9 +1180,9 @@ function renderRecommendations() {
             <div class="empty-state">
                 <div class="empty-state-icon">🔍</div>
                 <h4>아직 심사위원 전원 가능한 30분 일정이 없습니다.</h4>
-                <p>발표자 또는 교수님들의 가능한 시간대를 조금 더 추가 선택해주세요.</p>
-                <button class="btn btn-primary" style="margin-top:14px;" onclick="document.getElementById('btnQuickInput').click()">
-                    시간표 체크 입력하기
+                <p>홈 화면 최상단의 <strong>[교수님 가능 일정 입력]</strong>을 통해 심사위원 교수님들의 가능한 시간대를 추가해주세요.</p>
+                <button class="btn btn-primary" style="margin-top:14px;" onclick="openProfAvailModal()">
+                    교수님 가능 일정 입력하기
                 </button>
             </div>
         `;
@@ -1098,7 +1241,115 @@ function renderRecommendations() {
 }
 
 // ==========================================================================
-// 5. COMMITTEE MANAGEMENT MODAL (내부5인 / 외부2인 풀 연동)
+// 6. PROFESSOR AVAILABILITY INPUT MODAL
+// ==========================================================================
+
+function openProfAvailModal(targetProf = null) {
+    const modal = document.getElementById('modalProfAvail');
+    const select = document.getElementById('selectProfTarget');
+
+    if (targetProf) {
+        select.value = targetProf;
+        appState.modalProfTargetName = targetProf;
+    } else {
+        appState.modalProfTargetName = select.value;
+    }
+
+    renderInteractiveProfAvailTable();
+    modal.classList.add('active');
+}
+
+function renderInteractiveProfAvailTable() {
+    const profName = appState.modalProfTargetName;
+    const month = appState.modalProfInputMonth;
+    const tableContainer = document.getElementById('profAvailTable');
+
+    document.getElementById('modalProfChipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
+    document.getElementById('modalProfChipDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
+
+    const weekdays = [];
+    const daysInMonth = new Date(2026, month, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(2026, month - 1, d);
+        const dayOfWeek = dateObj.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            weekdays.push({
+                dateStr: `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
+                dayName: ["일", "월", "화", "수", "목", "금", "토"][dayOfWeek],
+                dayNum: d
+            });
+        }
+    }
+
+    let tableHtml = `<table class="interactive-avail-table"><thead><tr><th style="min-width: 85px;">30분 슬롯</th>`;
+
+    weekdays.forEach(w => {
+        tableHtml += `<th style="min-width: 48px;">${w.dayName}<br>${w.dayNum}일</th>`;
+    });
+
+    tableHtml += `</tr></thead><tbody>`;
+
+    TIME_SLOTS.forEach(time => {
+        const endTime = getEndTime30Min(time);
+        tableHtml += `<tr><td style="font-weight:700; background:#f8fafc; font-size:0.75rem;">${time}~${endTime}</td>`;
+
+        weekdays.forEach(w => {
+            const dt = `${w.dateStr} ${time}`;
+            const isAvail = isProfAvailable(profName, dt);
+            tableHtml += `
+                <td class="avail-check-cell ${isAvail ? 'selected' : ''}" 
+                    data-datetime="${dt}" 
+                    title="${profName} - ${dt} ~ ${endTime}">
+                </td>
+            `;
+        });
+
+        tableHtml += `</tr>`;
+    });
+
+    tableHtml += `</tbody></table>`;
+    tableContainer.innerHTML = tableHtml;
+
+    let isMouseDown = false;
+    let modeToSet = true;
+
+    tableContainer.querySelectorAll('.avail-check-cell').forEach(cell => {
+        cell.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isMouseDown = true;
+            const dt = cell.getAttribute('data-datetime');
+            const currentSelected = cell.classList.contains('selected');
+            modeToSet = !currentSelected;
+
+            if (modeToSet) cell.classList.add('selected');
+            else cell.classList.remove('selected');
+            toggleProfAvailability(profName, dt);
+        });
+
+        cell.addEventListener('mouseenter', () => {
+            if (isMouseDown) {
+                const dt = cell.getAttribute('data-datetime');
+                const currentSelected = cell.classList.contains('selected');
+                if (currentSelected !== modeToSet) {
+                    if (modeToSet) cell.classList.add('selected');
+                    else cell.classList.remove('selected');
+                    toggleProfAvailability(profName, dt);
+                }
+            }
+        });
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            isMouseDown = false;
+            renderProfCalendarHero();
+            renderPresentersSection();
+        }
+    }, { once: false });
+}
+
+// ==========================================================================
+// 7. COMMITTEE MANAGEMENT & OTHER MODALS
 // ==========================================================================
 
 function openPresenterModal(presenterToEdit) {
@@ -1120,7 +1371,6 @@ function openPresenterModal(presenterToEdit) {
 
     renderCommitteeRows(presenterToEdit.category, presenterToEdit.reviewers);
 
-    // Watch category change to automatically adapt rows
     const catSelect = document.getElementById('inputCategory');
     catSelect.onchange = () => {
         renderCommitteeRows(catSelect.value, []);
@@ -1139,7 +1389,6 @@ function renderCommitteeRows(category, existingReviewers = []) {
     if (isPhdGrad) {
         hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (정광용, 조남철) 총 5인을 지정하세요.`;
 
-        // 5 rows: 3 internal, 2 external
         const defaultRoles = [
             { role: "심사위원장", type: "internal" },
             { role: "지도교수", type: "internal" },
@@ -1156,7 +1405,6 @@ function renderCommitteeRows(category, existingReviewers = []) {
     } else {
         hint.innerHTML = `<span class="badge-tag-internal">내부 심사위원 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재)을 지정하세요.`;
 
-        // 3 rows: internal
         const defaultRoles = [
             { role: "심사위원장", type: "internal" },
             { role: "지도교수", type: "internal" },
@@ -1176,7 +1424,7 @@ function addProfessorSelectRow(role = '심사위원', type = 'internal', selecte
     const row = document.createElement('div');
     row.className = 'reviewer-row-item prof-select-row';
 
-    const pool = type === 'external' ? PROFESSOR_POOL.external : PROFESSOR_POOL.internal;
+    const pool = type === 'external' ? PROFESSORS.external.map(p => p.name) : PROFESSORS.internal.map(p => p.name);
     const typeLabel = type === 'external' ? '외부' : '내부';
     const typeBadgeClass = type === 'external' ? 'badge-tag-external-xs' : 'badge-tag-internal-xs';
 
@@ -1241,7 +1489,7 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
     const p = appState.presenters.find(x => x.id === editId);
     if (p) {
         p.category = category;
-        p.duration = 30; // Enforce 30 mins
+        p.duration = 30;
         p.thesisTitle = thesisTitle;
         p.location = location;
         p.reviewers = reviewers;
@@ -1253,129 +1501,6 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
     showToast(`${p.name} 심사위원단 및 발표 정보가 저장되었습니다.`);
 });
 
-/**
- * MODAL 2: 30-MIN AVAILABILITY ENTRY
- */
-function openAvailabilityModal() {
-    const presenter = getCurrentPresenter();
-    const modal = document.getElementById('modalAvailability');
-    const targetSelect = document.getElementById('availTargetSelect');
-    targetSelect.innerHTML = '';
-
-    const participants = getAllParticipants(presenter);
-    participants.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = `${p.role}: ${p.name}`;
-        if (!appState.modalAvailTargetPersonId && p.id === presenter.id) {
-            opt.selected = true;
-            appState.modalAvailTargetPersonId = p.id;
-        } else if (appState.modalAvailTargetPersonId === p.id) {
-            opt.selected = true;
-        }
-        targetSelect.appendChild(opt);
-    });
-
-    if (!appState.modalAvailTargetPersonId && participants.length > 0) {
-        appState.modalAvailTargetPersonId = participants[0].id;
-    }
-
-    renderInteractiveAvailTable();
-    modal.classList.add('active');
-}
-
-function renderInteractiveAvailTable() {
-    const presenter = getCurrentPresenter();
-    const personId = appState.modalAvailTargetPersonId;
-    const month = appState.modalAvailMonth;
-    const tableContainer = document.getElementById('availTable');
-
-    document.getElementById('modalChipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
-    document.getElementById('modalChipDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
-
-    const weekdays = [];
-    const daysInMonth = new Date(2026, month, 0).getDate();
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(2026, month - 1, d);
-        const dayOfWeek = dateObj.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            weekdays.push({
-                dateStr: `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-                dayName: ["일", "월", "화", "수", "목", "금", "토"][dayOfWeek],
-                dayNum: d
-            });
-        }
-    }
-
-    let tableHtml = `<table class="interactive-avail-table"><thead><tr><th style="min-width: 85px;">30분 슬롯</th>`;
-
-    weekdays.forEach(w => {
-        tableHtml += `<th style="min-width: 48px;">${w.dayName}<br>${w.dayNum}일</th>`;
-    });
-
-    tableHtml += `</tr></thead><tbody>`;
-
-    TIME_SLOTS.forEach(time => {
-        const endTime = getEndTime30Min(time);
-        tableHtml += `<tr><td style="font-weight:700; background:#f8fafc; font-size:0.75rem;">${time}~${endTime}</td>`;
-
-        weekdays.forEach(w => {
-            const dt = `${w.dateStr} ${time}`;
-            const isAvail = isSlotAvailable(presenter.id, personId, dt);
-            tableHtml += `
-                <td class="avail-check-cell ${isAvail ? 'selected' : ''}" 
-                    data-datetime="${dt}" 
-                    title="${dt} ~ ${endTime}">
-                </td>
-            `;
-        });
-
-        tableHtml += `</tr>`;
-    });
-
-    tableHtml += `</tbody></table>`;
-    tableContainer.innerHTML = tableHtml;
-
-    let isMouseDown = false;
-    let modeToSet = true;
-
-    tableContainer.querySelectorAll('.avail-check-cell').forEach(cell => {
-        cell.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            isMouseDown = true;
-            const dt = cell.getAttribute('data-datetime');
-            const currentSelected = cell.classList.contains('selected');
-            modeToSet = !currentSelected;
-
-            if (modeToSet) cell.classList.add('selected');
-            else cell.classList.remove('selected');
-            toggleSlotAvailability(presenter.id, personId, dt);
-        });
-
-        cell.addEventListener('mouseenter', () => {
-            if (isMouseDown) {
-                const dt = cell.getAttribute('data-datetime');
-                const currentSelected = cell.classList.contains('selected');
-                if (currentSelected !== modeToSet) {
-                    if (modeToSet) cell.classList.add('selected');
-                    else cell.classList.remove('selected');
-                    toggleSlotAvailability(presenter.id, personId, dt);
-                }
-            }
-        });
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isMouseDown) {
-            isMouseDown = false;
-            updateDetailBanner();
-        }
-    }, { once: false });
-}
-
-/**
- * MODAL 3: CONFIRM 30-MIN DEFENSE SCHEDULE
- */
 function openConfirmModal(presenter, dateStr, timeStr) {
     const modal = document.getElementById('modalConfirmDefense');
     const [y, m, d] = dateStr.split('-');
@@ -1421,9 +1546,6 @@ function openConfirmModal(presenter, dateStr, timeStr) {
     modal.classList.add('active');
 }
 
-/**
- * MODAL 5: ANNOUNCEMENT COPY (30 MIN)
- */
 function openNoticeModal() {
     const presenter = getCurrentPresenter();
     const modal = document.getElementById('modalNotice');
@@ -1450,7 +1572,7 @@ function openNoticeModal() {
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 TIME_SLOTS.forEach(time => {
-                    if (analyzeSlot(presenter, `${dateStr} ${time}`).isAllMatch) {
+                    if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch) {
                         const end = getEndTime30Min(time);
                         matched.push(`${dateStr} ${time} ~ ${end}`);
                     }
@@ -1493,10 +1615,6 @@ ${scheduleNotice}
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
-
-// ==========================================================================
-// 6. Navigation & View Routing
-// ==========================================================================
 
 let toastTimeout = null;
 function showToast(message) {
@@ -1551,7 +1669,8 @@ function renderAll() {
         pageHome.classList.add('active');
         pageDetail.classList.remove('active');
         btnNavHome.classList.add('active-nav');
-        renderHomeOverview();
+        renderProfCalendarHero();
+        renderPresentersSection();
     } else {
         pageHome.classList.remove('active');
         pageDetail.classList.add('active');
@@ -1566,34 +1685,51 @@ document.addEventListener('DOMContentLoaded', () => {
     loadState();
     renderAll();
 
+    // Top Navigation
     document.getElementById('brandHomeBtn').addEventListener('click', navigateToHome);
     document.getElementById('btnNavHome').addEventListener('click', navigateToHome);
     document.getElementById('btnBackToHome').addEventListener('click', navigateToHome);
 
-    document.getElementById('btnProfPoolModal').addEventListener('click', () => {
-        document.getElementById('modalProfPool').classList.add('active');
+    document.getElementById('btnOpenProfInputModal').addEventListener('click', () => {
+        openProfAvailModal();
+    });
+    document.getElementById('btnInputProfAvailHero').addEventListener('click', () => {
+        openProfAvailModal();
     });
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
     });
 
+    // Sector 1: Professor Filter Chips
+    document.querySelectorAll('#profFilterChips .prof-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('#profFilterChips .prof-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            appState.profFilterTarget = chip.getAttribute('data-prof');
+            renderProfCalendarHero();
+        });
+    });
+
+    // Sector 1: Month toggles
+    document.getElementById('btnProfNov').addEventListener('click', () => {
+        appState.profCalendarMonth = 11;
+        renderProfCalendarHero();
+    });
+    document.getElementById('btnProfDec').addEventListener('click', () => {
+        appState.profCalendarMonth = 12;
+        renderProfCalendarHero();
+    });
+
+    // Detail Action Buttons
     document.getElementById('btnEditCommitteeDirect').addEventListener('click', () => {
         openPresenterModal(getCurrentPresenter());
     });
     document.getElementById('btnQuickInput').addEventListener('click', () => {
-        openAvailabilityModal();
+        openProfAvailModal();
     });
 
-    document.getElementById('btnMasterNov').addEventListener('click', () => {
-        appState.masterCalendarMonth = 11;
-        renderMasterCalendar();
-    });
-    document.getElementById('btnMasterDec').addEventListener('click', () => {
-        appState.masterCalendarMonth = 12;
-        renderMasterCalendar();
-    });
-
+    // Subtabs in Detail view
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             switchSubView(btn.getAttribute('data-subview'));
@@ -1662,23 +1798,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('availTargetSelect').addEventListener('change', (e) => {
-        appState.modalAvailTargetPersonId = e.target.value;
-        renderInteractiveAvailTable();
+    // Professor Availability Modal controls
+    document.getElementById('selectProfTarget').addEventListener('change', (e) => {
+        appState.modalProfTargetName = e.target.value;
+        renderInteractiveProfAvailTable();
     });
-    document.getElementById('modalChipNov').addEventListener('click', () => {
-        appState.modalAvailMonth = 11;
-        renderInteractiveAvailTable();
+    document.getElementById('modalProfChipNov').addEventListener('click', () => {
+        appState.modalProfInputMonth = 11;
+        renderInteractiveProfAvailTable();
     });
-    document.getElementById('modalChipDec').addEventListener('click', () => {
-        appState.modalAvailMonth = 12;
-        renderInteractiveAvailTable();
+    document.getElementById('modalProfChipDec').addEventListener('click', () => {
+        appState.modalProfInputMonth = 12;
+        renderInteractiveProfAvailTable();
     });
 
-    document.getElementById('btnSelectAllSlots').addEventListener('click', () => {
-        const presenter = getCurrentPresenter();
-        const personId = appState.modalAvailTargetPersonId;
-        const month = appState.modalAvailMonth;
+    document.getElementById('btnProfSelectAll').addEventListener('click', () => {
+        const profName = appState.modalProfTargetName;
+        const month = appState.modalProfInputMonth;
         const daysInMonth = new Date(2026, month, 0).getDate();
 
         for (let d = 1; d <= daysInMonth; d++) {
@@ -1688,34 +1824,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dateStr = `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 TIME_SLOTS.forEach(time => {
                     const dt = `${dateStr} ${time}`;
-                    if (!isSlotAvailable(presenter.id, personId, dt)) {
-                        toggleSlotAvailability(presenter.id, personId, dt);
+                    if (!isProfAvailable(profName, dt)) {
+                        toggleProfAvailability(profName, dt);
                     }
                 });
             }
         }
-        renderInteractiveAvailTable();
-        updateDetailBanner();
-        showToast("평일 전체 가능으로 설정되었습니다.");
+        renderInteractiveProfAvailTable();
+        renderProfCalendarHero();
+        renderPresentersSection();
+        showToast(`${profName}: 해당 월 평일 전체 가능으로 설정되었습니다.`);
     });
 
-    document.getElementById('btnClearTargetSlots').addEventListener('click', () => {
-        const presenter = getCurrentPresenter();
-        const personId = appState.modalAvailTargetPersonId;
-        const month = appState.modalAvailMonth;
+    document.getElementById('btnProfSelectAfternoon').addEventListener('click', () => {
+        const profName = appState.modalProfTargetName;
+        const month = appState.modalProfInputMonth;
+        const daysInMonth = new Date(2026, month, 0).getDate();
+        const afternoonTimes = ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(2026, month - 1, d);
+            const dayOfWeek = dateObj.getDay();
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                const dateStr = `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                afternoonTimes.forEach(time => {
+                    const dt = `${dateStr} ${time}`;
+                    if (!isProfAvailable(profName, dt)) {
+                        toggleProfAvailability(profName, dt);
+                    }
+                });
+            }
+        }
+        renderInteractiveProfAvailTable();
+        renderProfCalendarHero();
+        renderPresentersSection();
+        showToast(`${profName}: 해당 월 평일 오후(13~18시) 가능으로 설정되었습니다.`);
+    });
+
+    document.getElementById('btnProfClear').addEventListener('click', () => {
+        const profName = appState.modalProfTargetName;
+        const month = appState.modalProfInputMonth;
         const monthPrefix = `2026-${String(month).padStart(2, '0')}`;
 
-        if (appState.availability[presenter.id] && appState.availability[presenter.id][personId]) {
-            appState.availability[presenter.id][personId] = appState.availability[presenter.id][personId].filter(
+        if (appState.profAvailability[profName]) {
+            appState.profAvailability[profName] = appState.profAvailability[profName].filter(
                 dt => !dt.startsWith(monthPrefix)
             );
             saveState();
         }
-        renderInteractiveAvailTable();
-        updateDetailBanner();
-        showToast("해당 월의 선택이 초기화되었습니다.");
+        renderInteractiveProfAvailTable();
+        renderProfCalendarHero();
+        renderPresentersSection();
+        showToast(`${profName}: 해당 월의 선택이 초기화되었습니다.`);
     });
 
+    // Modal Close
     document.querySelectorAll('.modal-close, [data-close]').forEach(btn => {
         btn.addEventListener('click', () => {
             const targetModalId = btn.getAttribute('data-close') || btn.closest('.modal-backdrop').id;

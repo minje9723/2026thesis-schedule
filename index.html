@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 후기 학위논문 발표 일정 조율 플랫폼 (인당 30분 배정)</title>
+    <title>2026 후기 학위논문 발표 일정 조율 플랫폼 (교수님 심사 가능 캘린더 중심)</title>
     <!-- Pretendard Web Font -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <link rel="stylesheet" href="style.css">
@@ -21,21 +21,21 @@
                 </div>
                 <div>
                     <h1 class="brand-title">2026 학위논문 발표 일정 조율</h1>
-                    <p class="brand-subtitle">박사졸업(내부3+외부2) · 박사주제(내부3) · 석사졸업(내부3) | 인당 30분 배정</p>
+                    <p class="brand-subtitle">심사위원 교수님 가능 일정 취합 기반 30분 발표 일정 조율 시스템</p>
                 </div>
             </div>
 
             <div class="header-actions">
                 <button id="btnNavHome" class="btn btn-secondary active-nav">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    전체 홈 (오버뷰)
+                    홈 (교수님 캘린더)
                 </button>
-                <button id="btnProfPoolModal" class="btn btn-secondary">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    심사위원 풀 (교수님 7인)
+                <button id="btnOpenProfInputModal" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    교수님 가능 일정 입력
                 </button>
                 <div class="presenter-selector-box">
-                    <label for="currentPresenterSelect">발표자 바로가기:</label>
+                    <label for="currentPresenterSelect">발표자 선택:</label>
                     <select id="currentPresenterSelect" class="styled-select">
                         <!-- Populated dynamically -->
                     </select>
@@ -47,107 +47,67 @@
     <div class="container main-layout">
 
         <!-- ===================================================================
-             PAGE 1: OVERVIEW HOME DASHBOARD (기본 시작 화면)
+             PAGE 1: OVERVIEW HOME DASHBOARD
+             SECTOR 1: 2026년 11월~12월 교수님들 심사 가능 캘린더 (최상단 메인 섹터)
              =================================================================== -->
         <main id="pageHome" class="app-page active">
-            <!-- Summary Stats Banner -->
-            <section class="overview-stats-banner">
-                <div class="stats-card">
-                    <div class="stat-number" id="statTotalCount">10</div>
-                    <div class="stat-label">전체 발표자 (각 30분)</div>
-                </div>
-                <div class="stats-card">
-                    <div class="stat-number text-phd" id="statPhdGradCount">1</div>
-                    <div class="stat-label">박사 졸업발표 (5인 심사)</div>
-                </div>
-                <div class="stats-card">
-                    <div class="stat-number text-prop" id="statPhdPropCount">4</div>
-                    <div class="stat-label">박사 주제발표 (3인 심사)</div>
-                </div>
-                <div class="stats-card">
-                    <div class="stat-number text-ms" id="statMsCount">5</div>
-                    <div class="stat-label">석사 졸업발표 (3인 심사)</div>
-                </div>
-                <div class="stats-card highlight-card">
-                    <div class="stat-number text-confirmed" id="statConfirmedCount">1</div>
-                    <div class="stat-label">심사일 확정 완료</div>
-                </div>
-            </section>
 
-            <!-- Guide & Rules Banner -->
-            <div class="user-guide-box">
-                <div class="guide-icon">📌</div>
-                <div class="guide-content">
-                    <strong>학위논문 심사 배정 기준 및 심사위원단 안내</strong>
-                    <ul class="guide-bullet-list">
-                        <li><strong>발표 시간:</strong> 인당 배정받은 발표 시간은 <strong>30분</strong>(질의응답 포함)입니다. (30분 단위 타임슬롯 조율)</li>
-                        <li><strong>심사위원단 구성 기준:</strong>
-                            <span class="rule-chip-inline">석사졸업발표 · 박사주제발표: <strong>내부 심사위원 3인</strong></span>
-                            <span class="rule-chip-inline phd">박사졸업발표: <strong>내부 심사위원 3인 + 외부 심사위원 2인 (총 5인)</strong></span>
-                        </li>
-                        <li><strong>심사위원 풀:</strong> 
-                            [내부 5인] 김수철 교수님, 이상옥 교수님, 권희홍 교수님, 한민수 교수님, 정용재 교수님 / 
-                            [외부 2인] 정광용 교수님, 조남철 교수님
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Category 1: 박사 졸업발표 (5인: 내부3 + 외부2) -->
-            <section class="category-section">
-                <div class="category-header">
-                    <div class="cat-title-wrap">
-                        <span class="cat-pill pill-phd-grad">박사 졸업발표</span>
-                        <h3>학위청구논문 최종 디펜스 (총 1명)</h3>
-                    </div>
-                    <span class="cat-desc">발표시간: <strong>30분</strong> · <strong>내부 3인 + 외부 2인 (총 5인 심사위원단)</strong></span>
-                </div>
-                <div class="presenter-roster-grid" id="rosterPhdGrad">
-                    <!-- Populated by JS: 김민제 -->
-                </div>
-            </section>
-
-            <!-- Category 2: 박사 주제발표 (3인: 내부3) -->
-            <section class="category-section">
-                <div class="category-header">
-                    <div class="cat-title-wrap">
-                        <span class="cat-pill pill-phd-prop">박사 주제발표</span>
-                        <h3>학위논문 연구계획/주제발표 (총 4명)</h3>
-                    </div>
-                    <span class="cat-desc">발표시간: <strong>30분</strong> · <strong>내부 심사위원 3인 구성</strong></span>
-                </div>
-                <div class="presenter-roster-grid" id="rosterPhdProp">
-                    <!-- Populated by JS: 강민지, 김정연, 최소연, 최규리 -->
-                </div>
-            </section>
-
-            <!-- Category 3: 석사 졸업발표 (3인: 내부3) -->
-            <section class="category-section">
-                <div class="category-header">
-                    <div class="cat-title-wrap">
-                        <span class="cat-pill pill-ms-grad">석사 졸업발표</span>
-                        <h3>석사학위 청구논문 심사 (총 5명)</h3>
-                    </div>
-                    <span class="cat-desc">발표시간: <strong>30분</strong> · <strong>내부 심사위원 3인 구성</strong></span>
-                </div>
-                <div class="presenter-roster-grid" id="rosterMsGrad">
-                    <!-- Populated by JS: 김동녘, 김신기, 김효정, 박혜리, 백주은 -->
-                </div>
-            </section>
-
-            <!-- Master Integrated Calendar (전체 발표자 확정 및 조율 현황) -->
-            <section class="master-calendar-section">
-                <div class="section-title-row">
+            <!-- SECTOR 1: PROFESSORS DEFENSE AVAILABILITY CALENDAR (최우선 메인 섹터) -->
+            <section class="prof-calendar-hero-sector">
+                <div class="sector-header-row">
                     <div>
-                        <h3 class="master-cal-title">📅 2026년 11월 ~ 12월 전체 발표 통합 캘린더 (30분 단위)</h3>
-                        <p class="section-desc">10명의 발표자 일정과 교수님들의 심사 일정이 겹치지 않도록 전체 현황을 실시간 표시합니다.</p>
+                        <div class="sector-badge-wrap">
+                            <span class="sector-core-badge">핵심 조율 기능</span>
+                            <span class="sector-period-badge">2026년 11월 ~ 12월</span>
+                        </div>
+                        <h2 class="sector-main-title">2026년 11월~12월 교수님들 심사 가능 캘린더</h2>
+                        <p class="sector-subtitle">
+                            발표자들은 교수님의 가능 일자 및 시간대를 따릅니다. 각 교수님들의 가능한 시간대를 종합하여 발표자들이 최적의 30분 슬롯을 찾을 수 있습니다.
+                        </p>
                     </div>
-                    <div class="master-month-toggle">
-                        <button class="btn-chip active" id="btnMasterNov">11월 보기</button>
-                        <button class="btn-chip" id="btnMasterDec">12월 보기</button>
+                    <div class="sector-header-actions">
+                        <button id="btnInputProfAvailHero" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 5v14M5 12h14"/></svg>
+                            교수님 가능 일정 등록/수정
+                        </button>
                     </div>
                 </div>
 
+                <!-- Professor Filter Bar -->
+                <div class="prof-filter-toolbar">
+                    <div class="prof-filter-label">교수님별 필터:</div>
+                    <div class="prof-filter-chips" id="profFilterChips">
+                        <button class="prof-chip active" data-prof="all">전체 교수님 종합 (7인)</button>
+                        <span class="filter-divider">|</span>
+                        <!-- Internal 5 -->
+                        <button class="prof-chip" data-prof="김수철 교수님"><span class="chip-dot dot-prof1"></span>김수철 (내부)</button>
+                        <button class="prof-chip" data-prof="이상옥 교수님"><span class="chip-dot dot-prof2"></span>이상옥 (내부)</button>
+                        <button class="prof-chip" data-prof="권희홍 교수님"><span class="chip-dot dot-prof3"></span>권희홍 (내부)</button>
+                        <button class="prof-chip" data-prof="한민수 교수님"><span class="chip-dot dot-prof4"></span>한민수 (내부)</button>
+                        <button class="prof-chip" data-prof="정용재 교수님"><span class="chip-dot dot-prof5"></span>정용재 (내부)</button>
+                        <span class="filter-divider">|</span>
+                        <!-- External 2 -->
+                        <button class="prof-chip external-chip" data-prof="정광용 교수님"><span class="chip-dot dot-prof6"></span>정광용 (외부)</button>
+                        <button class="prof-chip external-chip" data-prof="조남철 교수님"><span class="chip-dot dot-prof7"></span>조남철 (외부)</button>
+                    </div>
+                </div>
+
+                <!-- Calendar Navigation & Legend Bar -->
+                <div class="prof-cal-controls-bar">
+                    <div class="prof-month-toggle">
+                        <button class="btn-chip active" id="btnProfNov">2026년 11월 캘린더</button>
+                        <button class="btn-chip" id="btnProfDec">2026년 12월 캘린더</button>
+                    </div>
+                    <div class="prof-cal-legend">
+                        <span class="legend-chip-item"><span class="legend-color-box many"></span> 4인 이상 가능</span>
+                        <span class="legend-chip-item"><span class="legend-color-box moderate"></span> 2~3인 가능</span>
+                        <span class="legend-chip-item"><span class="legend-color-box some"></span> 1인 가능</span>
+                        <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정일</span>
+                        <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>해당 일자의 30분 단위 상세 시간표</strong>가 열립니다.</span>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
                 <div class="calendar-grid-header">
                     <div class="day-label sun">일</div>
                     <div class="day-label">월</div>
@@ -157,8 +117,78 @@
                     <div class="day-label">금</div>
                     <div class="day-label sat">토</div>
                 </div>
-                <div class="calendar-grid-body" id="masterCalendarGrid">
-                    <!-- Generated by JS -->
+                <div class="calendar-grid-body" id="profCalendarGrid">
+                    <!-- Populated dynamically by JS -->
+                </div>
+            </section>
+
+            <!-- SECTOR 2: SUMMARY STATS & RULES -->
+            <section class="overview-stats-banner" style="margin-top: 36px;">
+                <div class="stats-card">
+                    <div class="stat-number" id="statTotalCount">10</div>
+                    <div class="stat-label">전체 발표자 (각 30분)</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stat-number text-phd" id="statPhdGradCount">1</div>
+                    <div class="stat-label">박사 졸업 (내부3+외부2)</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stat-number text-prop" id="statPhdPropCount">4</div>
+                    <div class="stat-label">박사 주제 (내부3)</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stat-number text-ms" id="statMsCount">5</div>
+                    <div class="stat-label">석사 졸업 (내부3)</div>
+                </div>
+                <div class="stats-card highlight-card">
+                    <div class="stat-number text-confirmed" id="statConfirmedCount">1</div>
+                    <div class="stat-label">심사 확정 완료</div>
+                </div>
+            </section>
+
+            <!-- SECTOR 3: 10 PRESENTER ROSTER (교수님 일정 기반 조율) -->
+            <section class="presenters-section-group">
+                <div class="section-title-row" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700;">👥 발표자별 심사위원단 및 30분 일정 조율 현황</h3>
+                        <p class="section-desc">위 교수님 가능 일정을 기반으로, 각 발표자의 심사위원단이 모두 가능한 일정을 확인하고 확정합니다.</p>
+                    </div>
+                </div>
+
+                <!-- Category 1: 박사 졸업발표 -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="cat-title-wrap">
+                            <span class="cat-pill pill-phd-grad">박사 졸업발표</span>
+                            <h3>학위청구논문 심사 (총 1명)</h3>
+                        </div>
+                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부 3인 + 외부 2인 (총 5인 심사)</strong></span>
+                    </div>
+                    <div class="presenter-roster-grid" id="rosterPhdGrad"></div>
+                </div>
+
+                <!-- Category 2: 박사 주제발표 -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="cat-title-wrap">
+                            <span class="cat-pill pill-phd-prop">박사 주제발표</span>
+                            <h3>연구계획/주제발표 (총 4명)</h3>
+                        </div>
+                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부 심사위원 3인 구성</strong></span>
+                    </div>
+                    <div class="presenter-roster-grid" id="rosterPhdProp"></div>
+                </div>
+
+                <!-- Category 3: 석사 졸업발표 -->
+                <div class="category-section">
+                    <div class="category-header">
+                        <div class="cat-title-wrap">
+                            <span class="cat-pill pill-ms-grad">석사 졸업발표</span>
+                            <h3>석사학위 논문 심사 (총 5명)</h3>
+                        </div>
+                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부 심사위원 3인 구성</strong></span>
+                    </div>
+                    <div class="presenter-roster-grid" id="rosterMsGrad"></div>
                 </div>
             </section>
         </main>
@@ -167,20 +197,19 @@
              PAGE 2: INDIVIDUAL PRESENTER COORDINATION VIEW
              =================================================================== -->
         <main id="pageDetail" class="app-page">
-            <!-- Back to Home Bar -->
             <div class="detail-top-bar">
                 <button id="btnBackToHome" class="btn btn-outline">
                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                    ← 전체 발표자 목록(홈)으로 돌아가기
+                    ← 홈 (교수님 캘린더)으로 돌아가기
                 </button>
                 <div class="detail-actions">
                     <button id="btnEditCommitteeDirect" class="btn btn-secondary">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        심사위원 선택/수정
+                        심사위원 교수님 선택
                     </button>
                     <button id="btnQuickInput" class="btn btn-primary">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        시간표 체크 (30분 슬롯)
+                        내 가능 일정 체크
                     </button>
                 </div>
             </div>
@@ -202,16 +231,14 @@
                             <strong>심사 장소:</strong> <span id="bannerLocation">세미나실 1호</span>
                         </span>
                         <span class="meta-item">
-                            <strong>심사위원단:</strong> <span id="bannerCommitteeCount">총 5명 (내부 3명 + 외부 2명)</span>
+                            <strong>심사위원단:</strong> <span id="bannerCommitteeCount">총 5명 (내부 3 + 외부 2)</span>
                         </span>
                     </div>
                 </div>
-                <div class="banner-committee" id="bannerCommitteeTags">
-                    <!-- Badges for reviewers -->
-                </div>
+                <div class="banner-committee" id="bannerCommitteeTags"></div>
             </section>
 
-            <!-- Coordination Navigation Subtabs -->
+            <!-- Subtabs -->
             <div class="view-controls">
                 <div class="view-tabs">
                     <button class="tab-btn active" data-subview="month">
@@ -220,7 +247,7 @@
                     </button>
                     <button class="tab-btn" data-subview="week">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="4" x2="8" y2="22"/><line x1="16" y1="4" x2="16" y2="22"/></svg>
-                        주차별 타임테이블 (30분 단위)
+                        주차별 타임테이블 (30분)
                     </button>
                     <button class="tab-btn" data-subview="day">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -228,7 +255,7 @@
                     </button>
                     <button class="tab-btn" data-subview="recommend">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                        공통 가능 30분 슬롯 (최적 추천)
+                        심사위원 전원 가능 30분 슬롯 (최적 추천)
                     </button>
                 </div>
 
@@ -265,7 +292,7 @@
                 <div class="calendar-grid-body" id="calendarGridBody"></div>
             </section>
 
-            <!-- SUBVIEW 2: WEEKLY TIMETABLE (30 MIN SLOTS) -->
+            <!-- SUBVIEW 2: WEEKLY TIMETABLE -->
             <section id="subviewWeek" class="subview-panel">
                 <div class="week-toolbar">
                     <div class="week-selector-wrapper">
@@ -279,13 +306,12 @@
                         <label><input type="checkbox" id="chkOnlyWeekdays" checked> 주말 숨기기 (월~금)</label>
                     </div>
                 </div>
-
                 <div class="weekly-matrix-container">
                     <div class="weekly-matrix" id="weeklyMatrix"></div>
                 </div>
             </section>
 
-            <!-- SUBVIEW 3: DAILY DETAIL VIEW (30 MIN SLOTS) -->
+            <!-- SUBVIEW 3: DAILY DETAIL VIEW -->
             <section id="subviewDay" class="subview-panel">
                 <div class="day-header-bar">
                     <div class="day-date-picker">
@@ -301,7 +327,6 @@
                         </button>
                     </div>
                 </div>
-
                 <div class="daily-matrix-container">
                     <div class="daily-matrix" id="dailyMatrix"></div>
                 </div>
@@ -312,20 +337,96 @@
                 <div class="panel-header-row">
                     <div>
                         <h3>심사위원 전원 가능 30분 슬롯 (최적 추천)</h3>
-                        <p class="section-desc">발표자와 심사위원 모두의 일정이 일치하는 30분 발표 슬롯을 자동 분석했습니다.</p>
+                        <p class="section-desc">교수님들의 통합 가능 일정을 기반으로, 내 심사위원이 모두 가능한 30분 슬롯을 계산했습니다.</p>
                     </div>
                     <button id="btnCopyAnnouncement" class="btn btn-primary">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                         30분 심사 일정 공지문 복사 (이메일/카톡)
                     </button>
                 </div>
-
                 <div class="recommendations-container" id="recommendationsList"></div>
             </section>
         </main>
     </div>
 
-    <!-- MODAL 1: EDIT PRESENTER & COMMITTEE (내부/외부 교수님 풀 선택 지원) -->
+    <!-- MODAL: PROFESSOR AVAILABILITY INPUT (교수님 가능 일정 일괄 입력 모달) -->
+    <div class="modal-backdrop" id="modalProfAvail">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <div>
+                    <h3>👨‍🏫 심사위원 교수님 가능 일정 등록 및 수정</h3>
+                    <p class="modal-subtitle">교수님을 선택하고 11월/12월 평일 중 심사 가능한 30분 시간대를 클릭/드래그하여 활성화해주세요.</p>
+                </div>
+                <button class="modal-close" data-close="modalProfAvail">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="prof-avail-header-bar">
+                    <div class="prof-select-group">
+                        <label for="selectProfTarget"><strong>교수님 선택:</strong></label>
+                        <select id="selectProfTarget" class="styled-select prof-main-select">
+                            <optgroup label="내부 심사위원 (5인)">
+                                <option value="김수철 교수님">김수철 교수님 (내부)</option>
+                                <option value="이상옥 교수님">이상옥 교수님 (내부)</option>
+                                <option value="권희홍 교수님">권희홍 교수님 (내부)</option>
+                                <option value="한민수 교수님">한민수 교수님 (내부)</option>
+                                <option value="정용재 교수님">정용재 교수님 (내부)</option>
+                            </optgroup>
+                            <optgroup label="외부 심사위원 (2인)">
+                                <option value="정광용 교수님">정광용 교수님 (외부)</option>
+                                <option value="조남철 교수님">조남철 교수님 (외부)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="prof-quick-actions">
+                        <button type="button" class="btn btn-sm btn-outline" id="btnProfSelectAll">전체 평일 가능</button>
+                        <button type="button" class="btn btn-sm btn-outline" id="btnProfSelectAfternoon">오후(13~18시) 가능</button>
+                        <button type="button" class="btn btn-sm btn-outline" id="btnProfClear">초기화</button>
+                    </div>
+                </div>
+
+                <div class="month-subnav-modal" style="margin-top: 14px;">
+                    <button type="button" class="btn-chip active" id="modalProfChipNov">2026년 11월 일정표</button>
+                    <button type="button" class="btn-chip" id="modalProfChipDec">2026년 12월 일정표</button>
+                    <span class="modal-info-text">※ 평일 09:00 ~ 18:30 (30분 슬롯 단위)</span>
+                </div>
+
+                <div class="avail-grid-scroll">
+                    <div class="avail-table" id="profAvailTable"></div>
+                </div>
+
+                <div class="avail-legend-bar">
+                    <div class="legend-chip"><span class="box-sample avail"></span> 가능 (Available)</div>
+                    <div class="legend-chip"><span class="box-sample unavail"></span> 불가 (Unavailable)</div>
+                    <div class="save-status-indicator" id="profAutoSaveIndicator">선택 즉시 전체 발표자 일정에 자동 반영됩니다.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close="modalProfAvail">입력 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SINGLE DATE PROFESSOR BREAKDOWN (특정 일자의 교수님별 가능 현황 팝업) -->
+    <div class="modal-backdrop" id="modalDateProfDetail">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <div>
+                    <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 시간표</h3>
+                    <p class="modal-subtitle">이 날짜의 30분 단위 교수님 가능 현황 및 추천 발표자</p>
+                </div>
+                <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 480px; overflow-y: auto;">
+                <div id="dateProfDetailContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close="modalDateProfDetail">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT PRESENTER & COMMITTEE -->
     <div class="modal-backdrop" id="modalPresenter">
         <div class="modal-dialog modal-lg">
             <div class="modal-header">
@@ -381,9 +482,7 @@
                     <button type="button" id="btnAddReviewerRow" class="btn btn-sm btn-secondary">+ 심사위원 추가</button>
                 </div>
 
-                <div class="reviewer-rows-container" id="reviewersInputList">
-                    <!-- Dynamic reviewer rows with Internal/External dropdown -->
-                </div>
+                <div class="reviewer-rows-container" id="reviewersInputList"></div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" data-close="modalPresenter">취소</button>
@@ -393,53 +492,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: QUICK SCHEDULE AVAILABILITY ENTRY (30-MIN SLOTS) -->
-    <div class="modal-backdrop" id="modalAvailability">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-header">
-                <div>
-                    <h3 id="modalAvailTitle">30분 단위 가능 일정 입력 (시간표 체크)</h3>
-                    <p class="modal-subtitle">클릭 또는 마우스 드래그로 가능한 30분 시간대를 선택해주세요.</p>
-                </div>
-                <button class="modal-close" data-close="modalAvailability">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="avail-user-switch-bar">
-                    <div class="avail-target-select">
-                        <label for="availTargetSelect"><strong>입력 대상자:</strong></label>
-                        <select id="availTargetSelect" class="styled-select">
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="avail-quick-buttons">
-                        <button type="button" class="btn btn-sm btn-outline" id="btnSelectAllSlots">평일 전체 가능 선택</button>
-                        <button type="button" class="btn btn-sm btn-outline" id="btnClearTargetSlots">선택 초기화</button>
-                    </div>
-                </div>
-
-                <div class="month-subnav-modal">
-                    <button type="button" class="btn-chip active" id="modalChipNov">11월 일정표</button>
-                    <button type="button" class="btn-chip" id="modalChipDec">12월 일정표</button>
-                    <span class="modal-info-text">※ 평일 09:00 ~ 19:00 (30분 단위)</span>
-                </div>
-
-                <div class="avail-grid-scroll">
-                    <div class="avail-table" id="availTable"></div>
-                </div>
-
-                <div class="avail-legend-bar">
-                    <div class="legend-chip"><span class="box-sample avail"></span> 가능 (Available)</div>
-                    <div class="legend-chip"><span class="box-sample unavail"></span> 불가 (Unavailable)</div>
-                    <div class="save-status-indicator" id="autoSaveIndicator">입력 즉시 자동 저장됩니다.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-close="modalAvailability">입력 완료</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 3: CONFIRM FINAL DEFENSE SCHEDULE (30 MIN SLOTS) -->
+    <!-- MODAL: CONFIRM FINAL DEFENSE SCHEDULE (30 MIN SLOTS) -->
     <div class="modal-backdrop" id="modalConfirmDefense">
         <div class="modal-dialog">
             <div class="modal-header">
@@ -476,45 +529,7 @@
         </div>
     </div>
 
-    <!-- MODAL 4: PROFESSOR POOL INFO MODAL -->
-    <div class="modal-backdrop" id="modalProfPool">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-header">
-                <div>
-                    <h3>심사위원 교수님 풀 현황 (총 7인)</h3>
-                    <p class="modal-subtitle">내부 심사위원 5인 및 외부 심사위원 2인 명단</p>
-                </div>
-                <button class="modal-close" data-close="modalProfPool">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="prof-pool-section">
-                    <h4 class="prof-pool-title"><span class="badge-tag-internal">내부 심사위원 (5인)</span></h4>
-                    <p class="prof-pool-desc">석사/박사주제(3인 선택 배정), 박사졸업(3인 필수 배정)</p>
-                    <div class="prof-chips-grid">
-                        <div class="prof-card-item"><strong>김수철 교수님</strong></div>
-                        <div class="prof-card-item"><strong>이상옥 교수님</strong></div>
-                        <div class="prof-card-item"><strong>권희홍 교수님</strong></div>
-                        <div class="prof-card-item"><strong>한민수 교수님</strong></div>
-                        <div class="prof-card-item"><strong>정용재 교수님</strong></div>
-                    </div>
-                </div>
-
-                <div class="prof-pool-section" style="margin-top:20px;">
-                    <h4 class="prof-pool-title"><span class="badge-tag-external">외부 심사위원 (2인)</span></h4>
-                    <p class="prof-pool-desc">박사졸업발표 전용 (2인 필수 배정)</p>
-                    <div class="prof-chips-grid">
-                        <div class="prof-card-item external"><strong>정광용 교수님</strong></div>
-                        <div class="prof-card-item external"><strong>조남철 교수님</strong></div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-close="modalProfPool">확인</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 5: ANNOUNCEMENT COPY / EXPORT -->
+    <!-- MODAL: ANNOUNCEMENT COPY / EXPORT -->
     <div class="modal-backdrop" id="modalNotice">
         <div class="modal-dialog modal-lg">
             <div class="modal-header">

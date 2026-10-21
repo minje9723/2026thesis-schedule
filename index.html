@@ -48,11 +48,11 @@
 
         <!-- ===================================================================
              PAGE 1: OVERVIEW HOME DASHBOARD
-             SECTOR 1: 2026년 11월~12월 교수님들 심사 가능 캘린더 (최상단 메인 섹터)
+             SECTOR 1: 2026년 11월~12월 교수님들 심사 가능 캘린더
              =================================================================== -->
         <main id="pageHome" class="app-page active">
 
-            <!-- SECTOR 1: PROFESSORS DEFENSE AVAILABILITY CALENDAR (최우선 메인 섹터) -->
+            <!-- SECTOR 1: PROFESSORS DEFENSE AVAILABILITY CALENDAR -->
             <section class="prof-calendar-hero-sector">
                 <div class="sector-header-row">
                     <div>
@@ -62,7 +62,7 @@
                         </div>
                         <h2 class="sector-main-title">2026년 11월~12월 교수님들 심사 가능 캘린더</h2>
                         <p class="sector-subtitle">
-                            발표자들은 교수님의 가능 일자 및 시간대를 따릅니다. 각 교수님들의 가능한 시간대를 종합하여 발표자들이 최적의 30분 슬롯을 찾을 수 있습니다.
+                            발표자들은 교수님의 가능 일자 및 시간대를 따릅니다. 각 교수님들의 가능한 시간대를 종합하여 발표자들이 최적의 30분 슬롯을 찾고 즉시 확정/취소할 수 있습니다.
                         </p>
                     </div>
                     <div class="sector-header-actions">
@@ -73,7 +73,7 @@
                     </div>
                 </div>
 
-                <!-- Professor Filter Bar -->
+                <!-- Professor Filter Bar (외부 1, 외부 2 적용) -->
                 <div class="prof-filter-toolbar">
                     <div class="prof-filter-label">교수님별 필터:</div>
                     <div class="prof-filter-chips" id="profFilterChips">
@@ -86,9 +86,9 @@
                         <button class="prof-chip" data-prof="한민수 교수님"><span class="chip-dot dot-prof4"></span>한민수 (내부)</button>
                         <button class="prof-chip" data-prof="정용재 교수님"><span class="chip-dot dot-prof5"></span>정용재 (내부)</button>
                         <span class="filter-divider">|</span>
-                        <!-- External 2 -->
-                        <button class="prof-chip external-chip" data-prof="정광용 교수님"><span class="chip-dot dot-prof6"></span>정광용 (외부)</button>
-                        <button class="prof-chip external-chip" data-prof="조남철 교수님"><span class="chip-dot dot-prof7"></span>조남철 (외부)</button>
+                        <!-- External 2 (성함 제외, 외부 1/외부 2 지칭) -->
+                        <button class="prof-chip external-chip" data-prof="외부 1"><span class="chip-dot dot-prof6"></span>외부 1</button>
+                        <button class="prof-chip external-chip" data-prof="외부 2"><span class="chip-dot dot-prof7"></span>외부 2</button>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@
                         <span class="legend-chip-item"><span class="legend-color-box moderate"></span> 2~3인 가능</span>
                         <span class="legend-chip-item"><span class="legend-color-box some"></span> 1인 가능</span>
                         <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정일</span>
-                        <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>해당 일자의 30분 단위 상세 시간표</strong>가 열립니다.</span>
+                        <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>30분 단위 시간표에서 발표자 입력 후 확정/취소</strong>가 가능합니다.</span>
                     </div>
                 </div>
 
@@ -117,12 +117,10 @@
                     <div class="day-label">금</div>
                     <div class="day-label sat">토</div>
                 </div>
-                <div class="calendar-grid-body" id="profCalendarGrid">
-                    <!-- Populated dynamically by JS -->
-                </div>
+                <div class="calendar-grid-body" id="profCalendarGrid"></div>
             </section>
 
-            <!-- SECTOR 2: SUMMARY STATS & RULES -->
+            <!-- SECTOR 2: SUMMARY STATS -->
             <section class="overview-stats-banner" style="margin-top: 36px;">
                 <div class="stats-card">
                     <div class="stat-number" id="statTotalCount">10</div>
@@ -146,12 +144,12 @@
                 </div>
             </section>
 
-            <!-- SECTOR 3: 10 PRESENTER ROSTER (교수님 일정 기반 조율) -->
+            <!-- SECTOR 3: 10 PRESENTER ROSTER -->
             <section class="presenters-section-group">
                 <div class="section-title-row" style="margin-bottom: 16px;">
                     <div>
                         <h3 style="font-size: 1.25rem; font-weight: 700;">👥 발표자별 심사위원단 및 30분 일정 조율 현황</h3>
-                        <p class="section-desc">위 교수님 가능 일정을 기반으로, 각 발표자의 심사위원단이 모두 가능한 일정을 확인하고 확정합니다.</p>
+                        <p class="section-desc">위 교수님 가능 일정을 기반으로, 각 발표자의 심사위원단이 모두 가능한 일정을 확인하고 확정/취소합니다.</p>
                     </div>
                 </div>
 
@@ -209,7 +207,7 @@
                     </button>
                     <button id="btnQuickInput" class="btn btn-primary">
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        내 가능 일정 체크
+                        교수님 가능 일정 입력
                     </button>
                 </div>
             </div>
@@ -251,7 +249,7 @@
                     </button>
                     <button class="tab-btn" data-subview="day">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        일자별 상세 조율 (직접 토글)
+                        일자별 상세 조율 (확정/취소)
                     </button>
                     <button class="tab-btn" data-subview="recommend">
                         <svg viewBox="0 0 24 24" width="17" height="17" stroke="currentColor" stroke-width="2" fill="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -323,7 +321,7 @@
                     <div class="day-actions">
                         <button id="btnConfirmSlot" class="btn btn-success">
                             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            이 날짜로 30분 심사 최종 확정
+                            이 날짜로 30분 심사 확정하기
                         </button>
                     </div>
                 </div>
@@ -349,7 +347,7 @@
         </main>
     </div>
 
-    <!-- MODAL: PROFESSOR AVAILABILITY INPUT (교수님 가능 일정 일괄 입력 모달) -->
+    <!-- MODAL: PROFESSOR AVAILABILITY INPUT (외부 1, 외부 2 적용) -->
     <div class="modal-backdrop" id="modalProfAvail">
         <div class="modal-dialog modal-xl">
             <div class="modal-header">
@@ -372,8 +370,8 @@
                                 <option value="정용재 교수님">정용재 교수님 (내부)</option>
                             </optgroup>
                             <optgroup label="외부 심사위원 (2인)">
-                                <option value="정광용 교수님">정광용 교수님 (외부)</option>
-                                <option value="조남철 교수님">조남철 교수님 (외부)</option>
+                                <option value="외부 1">외부 1</option>
+                                <option value="외부 2">외부 2</option>
                             </optgroup>
                         </select>
                     </div>
@@ -407,21 +405,21 @@
         </div>
     </div>
 
-    <!-- MODAL: SINGLE DATE PROFESSOR BREAKDOWN (특정 일자의 교수님별 가능 현황 팝업) -->
+    <!-- MODAL: SINGLE DATE PROFESSOR BREAKDOWN & DIRECT PRESENTER CONFIRM / CANCEL -->
     <div class="modal-backdrop" id="modalDateProfDetail">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-header">
                 <div>
-                    <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 시간표</h3>
-                    <p class="modal-subtitle">이 날짜의 30분 단위 교수님 가능 현황 및 추천 발표자</p>
+                    <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 현황 및 발표자 확정</h3>
+                    <p class="modal-subtitle">시간대별 가능한 교수님 및 발표 가능인원을 확인하고, 발표자 이름을 입력하여 직접 확정하거나 기존 확정을 취소할 수 있습니다.</p>
                 </div>
                 <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
             </div>
-            <div class="modal-body" style="max-height: 480px; overflow-y: auto;">
+            <div class="modal-body" style="max-height: 520px; overflow-y: auto;">
                 <div id="dateProfDetailContent"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-close="modalDateProfDetail">확인</button>
+                <button type="button" class="btn btn-primary" data-close="modalDateProfDetail">닫기</button>
             </div>
         </div>
     </div>
@@ -496,11 +494,11 @@
     <div class="modal-backdrop" id="modalConfirmDefense">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h3>30분 심사 일정 최종 확정</h3>
+                <h3>30분 심사 일정 확정 및 취소 관리</h3>
                 <button class="modal-close" data-close="modalConfirmDefense">&times;</button>
             </div>
             <div class="modal-body">
-                <p class="confirm-lead-text">선택한 일시로 학위논문 발표(30분) 일정을 확정하시겠습니까?</p>
+                <p class="confirm-lead-text" id="confirmLeadText">선택한 일시로 학위논문 발표(30분) 일정을 확정하시겠습니까?</p>
                 <div class="confirm-info-box">
                     <div class="confirm-info-row">
                         <span>발표자:</span>
@@ -519,11 +517,11 @@
                         <input type="text" id="confirmModalLocation" class="form-control" placeholder="장소 입력 (예: 세미나실 1호)">
                     </div>
                 </div>
-                <p class="modal-note">확정 후에도 변경 또는 취소가 가능하며, 전체 통합 캘린더에 실시간 반영됩니다.</p>
+                <p class="modal-note">확정 후에도 언제든지 [확정 취소] 버튼을 눌러 취소할 수 있습니다.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline" data-close="modalConfirmDefense">취소</button>
-                <button type="button" id="btnCancelConfirmation" class="btn btn-danger" style="display:none;">확정 취소</button>
+                <button type="button" class="btn btn-outline" data-close="modalConfirmDefense">닫기</button>
+                <button type="button" id="btnCancelConfirmation" class="btn btn-danger" style="display:none;">이 확정 취소하기</button>
                 <button type="button" id="btnSaveConfirmation" class="btn btn-success">최종 확정 저장</button>
             </div>
         </div>

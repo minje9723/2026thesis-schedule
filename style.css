@@ -39,8 +39,8 @@
     --col-prof3: #7c3aed;       /* 권희홍 */
     --col-prof4: #0d9488;       /* 한민수 */
     --col-prof5: #059669;       /* 정용재 */
-    --col-prof6: #d97706;       /* 정광용 (외부) */
-    --col-prof7: #ea580c;       /* 조남철 (외부) */
+    --col-prof6: #d97706;       /* 외부 1 */
+    --col-prof7: #ea580c;       /* 외부 2 */
 
     /* Neutrals */
     --bg-page: #f8fafc;
@@ -1462,6 +1462,33 @@ a {
 .daily-summary-pill.partial-match {
     background: #e2e8f0;
     color: #475569;
+}
+
+/* Candidate Chips in Modal */
+.btn-candidate-chip {
+    background: #eef2ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 2px 3px 2px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s ease;
+}
+.btn-candidate-chip:hover {
+    background: #e0e7ff;
+    border-color: #a5b4fc;
+    transform: translateY(-1px);
+}
+.btn-candidate-chip.is-conf {
+    background: #f1f5f9;
+    color: #94a3b8;
+    border-color: #cbd5e1;
 }
 
 /* Recommendations */

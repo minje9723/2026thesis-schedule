@@ -133,6 +133,27 @@ function toPeriodSlots(slots) {
     return [...new Set(slots.map(toPeriodSlot))];
 }
 
+// 직접 입력한 발표 시간을 "HH:MM"으로 정리 (1400, 14:00, 930, 14시 30분 등). 알아볼 수 없으면 ''
+// 오후 시간대에서는 1~6시처럼 12보다 작은 시각을 오후로 해석 (2 → 14:00)
+function normalizeTimeInput(text, period) {
+    const t = (text || '').trim();
+    let h;
+    let m;
+    const withSeparator = t.match(/^(\d{1,2})\s*[:시.]\s*(\d{1,2})?\s*분?$/);
+    if (withSeparator) {
+        h = Number(withSeparator[1]);
+        m = withSeparator[2] ? Number(withSeparator[2]) : 0;
+    } else if (/^\d{1,4}$/.test(t)) {
+        h = Number(t.length <= 2 ? t : t.slice(0, -2));
+        m = t.length <= 2 ? 0 : Number(t.slice(-2));
+    } else {
+        return '';
+    }
+    if (period === 'PM' && h >= 1 && h < 12) h += 12;
+    if (h > 23 || m > 59) return '';
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 function toMinutes(time) {
     const [h, m] = time.split(':').map(Number);
     return h * 60 + m;
@@ -786,8 +807,9 @@ function confirmPresenterSchedule(presenter, dateStr, period, time, location) {
         return false;
     }
     const p = getPeriod(period);
-    if (!/^\d{2}:\d{2}$/.test(time || '')) {
-        alert("발표 시간을 입력해주세요. (예: 14:00)");
+    time = normalizeTimeInput(time, period);
+    if (!time) {
+        alert("발표 시간을 숫자로 입력해주세요. (예: 1400 또는 14:00)");
         return false;
     }
     if (time < p.minTime || time > p.maxTime) {
@@ -1006,7 +1028,7 @@ function openDateProfDetailModal(dateStr) {
     const { y, m, d, dayName } = formatDateWithDay(dateStr);
     appState.detailModalDate = dateStr;
 
-    document.getElementById('dateProfDetailTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일) 교수님 가능 일정 지정 및 발표자 확정`;
+    document.getElementById('dateProfDetailTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일) 심사 예약`;
 
     document.getElementById('dateProfDetailContent').innerHTML = `
         <div class="date-detail-guide">
@@ -1095,7 +1117,8 @@ function buildDateDetailRow(dateStr, period, draft) {
                     ${others.length ? `<optgroup label="그 외 발표자">${others.map(option).join('')}</optgroup>` : ''}
                 </select>
                 <label class="slot-time-label">발표 시간
-                    <input type="time" class="form-control slot-time-input" min="${period.minTime}" max="${period.maxTime}" step="300" value="${draft.time}">
+                    <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input"
+                           data-period="${period.key}" placeholder="예: ${period.key === 'AM' ? '1000' : '1400'}" value="${draft.time}">
                 </label>
                 <div class="slot-candidate-count ${candidates.length ? 'has-candidates' : ''}">${candidates.length ? `✓ 전원 가능 후보 ${candidates.length}명` : '전원 가능 후보 없음'}</div>
             </td>
@@ -1911,8 +1934,8 @@ function openConfirmModal(presenter, dateStr, period) {
     document.getElementById('confirmModalLocation').value = presenter.location || "세미나실 1호";
 
     const timeInput = document.getElementById('confirmModalTime');
-    timeInput.min = p.minTime;
-    timeInput.max = p.maxTime;
+    timeInput.dataset.period = period;
+    timeInput.placeholder = `예: ${period === 'AM' ? '1000' : '1400'}`;
     timeInput.value = cs && cs.date === dateStr && schedulePeriod(cs) === period ? cs.time : '';
 
     const btnCancel = document.getElementById('btnCancelConfirmation');
@@ -2082,6 +2105,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
+    });
+
+    // 발표 시간 입력칸: 칸을 벗어나면 입력한 숫자를 "14:00" 형식으로 정리해 보여 줌
+    document.addEventListener('focusout', (e) => {
+        if (!e.target.matches || !e.target.matches('.slot-time-input, #confirmModalTime')) return;
+        const normalized = normalizeTimeInput(e.target.value, e.target.dataset.period);
+        if (normalized) e.target.value = normalized;
     });
 
     // [전체 발표자] 카드: 발표자 명단과 심사 일자

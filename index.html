@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.4">
+    <link rel="stylesheet" href="style.css?v=20261022.5">
 </head>
 
 <body>
@@ -351,7 +351,7 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-header">
                 <div>
-                    <h3 id="dateProfDetailTitle">2026년 11월 27일 교수님별 심사 가능 현황 및 발표자 확정</h3>
+                    <h3 id="dateProfDetailTitle">심사 예약</h3>
                     <p class="modal-subtitle">오전/오후별로 참석 가능한 교수님을 지정하고, 발표자와 발표 시간을 입력해 확정하거나 기존 확정을 취소할 수 있습니다.</p>
                 </div>
                 <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
@@ -456,7 +456,7 @@
                     </div>
                     <div class="confirm-info-row">
                         <label for="confirmModalTime">발표 시간:</label>
-                        <input type="time" id="confirmModalTime" class="form-control" step="300">
+                        <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" id="confirmModalTime" class="form-control" placeholder="예: 1400">
                     </div>
                     <div class="confirm-info-row">
                         <span>배정 시간:</span>
@@ -522,8 +522,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.4"></script>
-    <script src="script.js?v=20261022.4"></script>
+    <script src="firebase-config.js?v=20261022.5"></script>
+    <script src="script.js?v=20261022.5"></script>
 </body>
 
 </html>

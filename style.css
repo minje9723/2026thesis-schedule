@@ -363,32 +363,6 @@ a {
     flex-wrap: wrap;
 }
 
-.sector-badge-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.sector-core-badge {
-    background: linear-gradient(135deg, #4f46e5, #0ea5e9);
-    color: #ffffff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 4px;
-    letter-spacing: 0.02em;
-}
-
-.sector-period-badge {
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 4px;
-}
-
 .sector-main-title {
     font-size: 1.45rem;
     font-weight: 800;
@@ -475,9 +449,32 @@ a {
     gap: 12px;
 }
 
+/* 11월 | 12월 전환 (작은 2칸 토글) */
 .prof-month-toggle {
-    display: flex;
-    gap: 6px;
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--surface-border-strong);
+    border-radius: var(--radius-full);
+    background: #ffffff;
+}
+
+.month-tab {
+    padding: 5px 18px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.month-tab.active {
+    background: var(--primary);
+    color: #ffffff;
 }
 
 .prof-cal-legend {
@@ -621,6 +618,62 @@ a {
 .stats-card.highlight-card {
     background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
     border-color: var(--confirmed-border);
+}
+
+.stats-card.is-clickable {
+    cursor: pointer;
+}
+
+.stats-card.is-clickable:hover,
+.stats-card.is-clickable:focus-visible {
+    border-color: var(--primary-border);
+}
+
+.stat-link-hint {
+    margin-top: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* 전체 발표자 명단 창 */
+.presenter-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.presenter-list-table th,
+.presenter-list-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--surface-border);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.presenter-list-table th {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    background: var(--surface-subtle);
+}
+
+.presenter-list-table tr.is-confirmed td {
+    background: #faf8ff;
+}
+
+.presenter-list-name {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.presenter-list-location {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.presenter-list-pending {
+    color: var(--text-muted);
 }
 
 .stat-number {
@@ -2201,13 +2254,7 @@ a {
         margin-bottom: 10px;
     }
     .prof-month-toggle {
-        width: 100%;
-    }
-    .prof-month-toggle .btn-chip {
-        flex: 1;
-        text-align: center;
-        padding: 8px;
-        font-size: 0.82rem;
+        align-self: flex-start;
     }
     .prof-cal-legend {
         gap: 8px;

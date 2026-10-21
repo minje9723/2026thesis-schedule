@@ -602,6 +602,9 @@ function renderAfterRemoteChange() {
         if (document.getElementById('modalDateProfDetail').classList.contains('active')) {
             refreshDateDetailRows();
         }
+        if (document.getElementById('modalPresenterList').classList.contains('active')) {
+            renderPresenterList();
+        }
     }, 300);
 }
 
@@ -868,8 +871,8 @@ function renderProfCalendarHero() {
     const month = appState.profCalendarMonth;
     const pickProf = appState.profFilterTarget === 'all' ? null : appState.profFilterTarget;
 
-    document.getElementById('btnProfNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
-    document.getElementById('btnProfDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
+    document.getElementById('btnProfNov').className = `month-tab ${month === 11 ? 'active' : ''}`;
+    document.getElementById('btnProfDec').className = `month-tab ${month === 12 ? 'active' : ''}`;
 
     const banner = document.getElementById('profPickBanner');
     banner.hidden = !pickProf;
@@ -885,9 +888,6 @@ function renderProfCalendarHero() {
         const confirmedHere = appState.presenters.filter(
             p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
         );
-        const badgeHtml = confirmedHere.length > 0
-            ? `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`
-            : '';
 
         let contentHtml = '';
         if (pickProf) {
@@ -922,7 +922,6 @@ function renderProfCalendarHero() {
         cell.innerHTML = `
             <div class="cal-day-header">
                 <span class="cal-day-num">${dayNum}</span>
-                ${badgeHtml}
             </div>
             <div class="cal-day-content">${contentHtml}</div>
         `;
@@ -1111,6 +1110,50 @@ function buildDateDetailRow(dateStr, period, draft) {
 // ==========================================================================
 // 4. SECTOR 3: PRESENTER ROSTER & MATCHING SUMMARY
 // ==========================================================================
+
+const CATEGORY_PILLS = {
+    '박사졸업발표': { label: '박사 졸업', className: 'pill-phd-grad' },
+    '박사주제발표': { label: '박사 주제', className: 'pill-phd-prop' },
+    '석사졸업발표': { label: '석사 졸업', className: 'pill-ms-grad' }
+};
+
+// [전체 발표자] 카드를 누르면 나오는 발표자 명단과 심사 일자 (구분별 순서)
+function renderPresenterList() {
+    const presenters = Object.keys(CATEGORY_PILLS).flatMap(cat => appState.presenters.filter(p => p.category === cat));
+    const confirmedCount = presenters.filter(p => p.confirmedSchedule).length;
+    document.getElementById('presenterListSummary').textContent =
+        `총 ${presenters.length}명 · 심사 일자 확정 ${confirmedCount}명 · 미정 ${presenters.length - confirmedCount}명`;
+
+    const rows = presenters.map(p => {
+        const cs = p.confirmedSchedule;
+        const pill = CATEGORY_PILLS[p.category];
+        let when = '<span class="presenter-list-pending">미정</span>';
+        if (cs) {
+            const { m, d, dayName } = formatDateWithDay(cs.date);
+            when = `<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${getPeriod(schedulePeriod(cs)).label} ${cs.time}~${getEndTime30Min(cs.time)}</strong>`
+                + (cs.location ? `<span class="presenter-list-location">${cs.location}</span>` : '');
+        }
+        return `
+            <tr class="${cs ? 'is-confirmed' : ''}">
+                <td><span class="cat-pill ${pill.className}">${pill.label}</span></td>
+                <td class="presenter-list-name">${p.name}</td>
+                <td>${when}</td>
+            </tr>
+        `;
+    }).join('');
+
+    document.getElementById('presenterListContent').innerHTML = `
+        <table class="presenter-list-table">
+            <thead><tr><th>구분</th><th>발표자</th><th>심사 일시</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    `;
+}
+
+function openPresenterListModal() {
+    renderPresenterList();
+    document.getElementById('modalPresenterList').classList.add('active');
+}
 
 function renderPresentersSection() {
     const presenters = appState.presenters;
@@ -2039,6 +2082,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
+    });
+
+    // [전체 발표자] 카드: 발표자 명단과 심사 일자
+    const presenterListCard = document.getElementById('btnPresenterList');
+    presenterListCard.addEventListener('click', openPresenterListModal);
+    presenterListCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openPresenterListModal();
+        }
     });
 
     // 교수님 가능 날짜 선택 모드 종료

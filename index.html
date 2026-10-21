@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.3">
+    <link rel="stylesheet" href="style.css?v=20261022.4">
 </head>
 
 <body>
@@ -61,10 +61,6 @@
             <section class="prof-calendar-hero-sector">
                 <div class="sector-header-row">
                     <div>
-                        <div class="sector-badge-wrap">
-                            <span class="sector-core-badge">핵심 조율 기능</span>
-                            <span class="sector-period-badge">2026년 11월 ~ 12월</span>
-                        </div>
                         <h2 class="sector-main-title">2026년 11월~12월 교수님들 심사 가능 캘린더</h2>
                     </div>
                 </div>
@@ -84,14 +80,11 @@
 
                 <!-- Calendar Navigation & Legend Bar -->
                 <div class="prof-cal-controls-bar">
-                    <div class="prof-month-toggle">
-                        <button class="btn-chip active" id="btnProfNov">2026년 11월 캘린더</button>
-                        <button class="btn-chip" id="btnProfDec">2026년 12월 캘린더</button>
+                    <div class="prof-month-toggle" role="group" aria-label="달 선택">
+                        <button type="button" class="month-tab active" id="btnProfNov">11월</button>
+                        <button type="button" class="month-tab" id="btnProfDec">12월</button>
                     </div>
                     <div class="prof-cal-legend">
-                        <span class="legend-chip-item">참석 가능 교수님 (성 표기):
-                            <span class="prof-initial-badge is-int">내</span> 내부
-                            <span class="prof-initial-badge is-ext">외</span> 외부</span>
                         <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정</span>
                         <span class="legend-cal-tip">💡 날짜를 누르면 <strong>오전/오후별로 교수님 가능 일정을 지정하고 발표자를 확정/취소</strong>할 수
                             있습니다.</span>
@@ -111,9 +104,10 @@
 
             <!-- SECTOR 2: SUMMARY STATS -->
             <section class="overview-stats-banner" style="margin-top: 36px;">
-                <div class="stats-card">
+                <div class="stats-card is-clickable" id="btnPresenterList" role="button" tabindex="0" title="발표자 명단과 심사 일자 보기">
                     <div class="stat-number" id="statTotalCount">-</div>
                     <div class="stat-label">전체 발표자 (각 30분)</div>
+                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card">
                     <div class="stat-number text-phd" id="statPhdGradCount">-</div>
@@ -485,6 +479,25 @@
         </div>
     </div>
 
+    <!-- MODAL: 전체 발표자 명단 및 심사 일자 -->
+    <div class="modal-backdrop" id="modalPresenterList">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <div>
+                    <h3>전체 발표자 명단 및 심사 일자</h3>
+                    <p class="modal-subtitle" id="presenterListSummary"></p>
+                </div>
+                <button class="modal-close" data-close="modalPresenterList">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="presenterListContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-close="modalPresenterList">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: ANNOUNCEMENT COPY / EXPORT -->
     <div class="modal-backdrop" id="modalNotice">
         <div class="modal-dialog modal-lg">
@@ -509,8 +522,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.3"></script>
-    <script src="script.js?v=20261022.3"></script>
+    <script src="firebase-config.js?v=20261022.4"></script>
+    <script src="script.js?v=20261022.4"></script>
 </body>
 
 </html>

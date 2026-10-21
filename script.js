@@ -120,7 +120,7 @@ function schedulePeriod(schedule) {
 
 function scheduleText(schedule) {
     const { dayName } = formatDateWithDay(schedule.date);
-    return `${schedule.date} (${dayName}) ${getPeriod(schedulePeriod(schedule)).label} ${schedule.time} ~ ${getEndTime30Min(schedule.time)}`;
+    return `${schedule.date} (${dayName}) ${schedule.time} ~ ${getEndTime30Min(schedule.time)}`;
 }
 
 // 30분 단위로 저장돼 있던 예전 일정("2026-11-20 14:00")을 오전/오후 형식으로 변환
@@ -844,7 +844,7 @@ function confirmPresenterSchedule(presenter, dateStr, period, time, location) {
     saveState();
     renderAll();
     const { m, d, dayName } = formatDateWithDay(dateStr);
-    showCelebration(`${presenter.name} · ${Number(m)}월 ${Number(d)}일 (${dayName}) ${p.label} ${time}~${getEndTime30Min(time)}`);
+    showCelebration(`${presenter.name} · ${Number(m)}월 ${Number(d)}일 (${dayName}) ${time}~${getEndTime30Min(time)}`);
     return true;
 }
 
@@ -939,8 +939,7 @@ function renderProfCalendarHero() {
     banner.hidden = !pickProf;
     document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
     if (pickProf) {
-        document.getElementById('profPickText').innerHTML =
-            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꾸고, <strong>날짜 칸</strong>을 누르면 하루 전체를 한 번에 선택/해제합니다.`;
+        document.getElementById('profPickText').textContent = '';
         document.getElementById('btnProfPickAll').textContent =
             isProfMonthFull(pickProf, month) ? `${month}월 전체 해제` : `${month}월 전체 가능`;
     }
@@ -961,12 +960,27 @@ function renderProfCalendarHero() {
                                 title="${p.label} ${p.range} · ${on ? '가능 (누르면 해제)' : '누르면 가능'}">${on ? '✓ ' : ''}${p.label}</button>`;
             }).join('')}</div>`;
         } else {
-            const availableProfs = getProfessorsAvailableOnDate(dateStr);
-            cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''}`;
+            // 표기 순서: 김 권 이 한 정 (그 외 성은 뒤, 같은 성은 기존 목록 순서 유지)
+            const INITIAL_ORDER = ['김', '권', '이', '한', '정', '조', '박'];
+            const initialRank = n => { const i = INITIAL_ORDER.indexOf(getProfInitial(n)); return i < 0 ? INITIAL_ORDER.length : i; };
+            const availableProfs = getProfessorsAvailableOnDate(dateStr)
+                .map((n, idx) => ({ n, idx }))
+                .sort((a, b) => initialRank(a.n) - initialRank(b.n) || a.idx - b.idx)
+                .map(x => x.n);
+            // 심사위원 전원이 가능한 미확정 발표자가 있는 날 = 심사 가능일
+            const reviewable = appState.presenters
+                .filter(p => !p.confirmedSchedule)
+                .map(p => ({ p, periods: getAllMatchPeriods(p, dateStr) }))
+                .filter(x => x.periods.length > 0);
+            cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''} ${reviewable.length ? 'is-reviewable' : ''}`;
+            if (reviewable.length) {
+                const tip = reviewable.map(x => `${x.p.name}(${x.periods.map(k => getPeriod(k).label).join('/')})`).join(', ');
+                cell.title = `심사 오픈: ${tip}`;
+            }
 
             contentHtml = confirmedHere.map(item => `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
-                    ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:9px; font-weight:700; margin-bottom:4px;">
+                    ${item.name} <span style="font-size:9px; opacity:0.85;">(${item.confirmedSchedule.time})</span>
                 </div>
             `).join('');
 
@@ -980,10 +994,13 @@ function renderProfCalendarHero() {
             }
         }
 
+        const isChristmas = dateStr.endsWith('-12-25');
+        if (isChristmas) cell.classList.add('is-holiday');
         cell.innerHTML = `
             <div class="cal-day-header">
                 <span class="cal-day-num">${dayNum}</span>
             </div>
+            ${isChristmas ? '<div class="cal-holiday-label" style="font-size:0.7rem; font-weight:700; color:#e11d2e; margin-bottom:4px;">🎄 크리스마스</div>' : ''}
             <div class="cal-day-content">${contentHtml}</div>
         `;
 
@@ -1070,10 +1087,7 @@ function openDateProfDetailModal(dateStr) {
     document.getElementById('dateProfDetailTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일) 심사 예약`;
 
     document.getElementById('dateProfDetailContent').innerHTML = `
-        <div class="date-detail-guide">
-            <div>💡 <strong>교수님 이름</strong>을 눌러 오전/오후 참석 가능 여부를 지정하고, <strong>발표자를 선택하고 발표 시간을 입력</strong>한 뒤 <strong>[확정]</strong>을 누르세요.</div>
-            <span class="date-detail-guide-sub">색이 채워진 이름 = 참석 가능 · 한 시간대에 여러 발표자 확정 가능 · 확정 후에도 [취소] 가능</span>
-        </div>
+        <div id="dateDetailReservations" class="date-detail-reservations" style="margin-bottom:14px;"></div>
         <div class="mobile-table-scroll-wrap" style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
         <table class="daily-table date-detail-table">
             <thead>
@@ -1106,6 +1120,27 @@ function refreshDateDetailRows() {
         drafts[tr.dataset.period] = { presenterId: sel ? sel.value : '', time: timeInput ? timeInput.value : '' };
     });
     tbody.innerHTML = PERIODS.map(p => buildDateDetailRow(dateStr, p, drafts[p.key] || { presenterId: '', time: '' })).join('');
+
+    // 해당 일자의 예약(확정) 내역을 팝업 맨 위에 표시
+    const resBox = document.getElementById('dateDetailReservations');
+    if (resBox) {
+        const reserved = appState.presenters
+            .filter(p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr)
+            .sort((a, b) => a.confirmedSchedule.time.localeCompare(b.confirmedSchedule.time));
+        const availHtml = PERIODS.map(per => {
+            const names = appState.presenters
+                .filter(p => analyzeSlotForStudent(p, `${dateStr} ${per.key}`).isAllMatch)
+                .map(p => p.name);
+            return `<div class="slot-candidate-count ${names.length ? 'has-candidates' : ''}"><strong>${per.label}</strong> ✓ 심사 가능: ${names.length ? names.join(', ') : '없음'}</div>`;
+        }).join('');
+        resBox.innerHTML = `<h4 class="form-section-title" style="margin:0 0 8px;">✅ 심사 가능 발표자</h4>${availHtml}`
+            + `<h4 class="form-section-title" style="margin:14px 0 8px;">📌 예약 내역 (${reserved.length}건)</h4>`
+            + (reserved.length
+                ? reserved.map(p => `<div class="slot-confirmed-item">
+                        <span class="status-badge confirmed">${p.confirmedSchedule.time}~${getEndTime30Min(p.confirmedSchedule.time)} ${p.name}</span>
+                    </div>`).join('')
+                : '<div class="presenter-list-pending">이 날짜에 예약된 발표가 없습니다.</div>');
+    }
 }
 
 function buildDateDetailRow(dateStr, period, draft) {
@@ -1152,14 +1187,13 @@ function buildDateDetailRow(dateStr, period, draft) {
             <td>
                 <select class="form-control slot-presenter-select">
                     <option value="">-- 발표자 선택 --</option>
-                    ${candidates.length ? `<optgroup label="심사위원 전원 가능 (${candidates.length}명)">${candidates.map(option).join('')}</optgroup>` : ''}
+                    ${candidates.length ? `<optgroup label="심사 가능 (${candidates.length}명)">${candidates.map(option).join('')}</optgroup>` : ''}
                     ${others.length ? `<optgroup label="그 외 발표자">${others.map(option).join('')}</optgroup>` : ''}
                 </select>
                 <label class="slot-time-label">발표 시간
                     <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input"
                            data-period="${period.key}" placeholder="예: ${period.key === 'AM' ? '1000' : '1400'}" value="${draft.time}">
                 </label>
-                <div class="slot-candidate-count ${candidates.length ? 'has-candidates' : ''}">${candidates.length ? `✓ 전원 가능 후보 ${candidates.length}명` : '전원 가능 후보 없음'}</div>
             </td>
             <td class="center">
                 <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
@@ -1192,7 +1226,7 @@ function renderPresenterList() {
         let when = '<span class="presenter-list-pending">미정</span>';
         if (cs) {
             const { m, d, dayName } = formatDateWithDay(cs.date);
-            when = `<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${getPeriod(schedulePeriod(cs)).label} ${cs.time}~${getEndTime30Min(cs.time)}</strong>`
+            when = `<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${cs.time}~${getEndTime30Min(cs.time)}</strong>`
                 + (cs.location ? `<span class="presenter-list-location">${cs.location}</span>` : '');
         }
         return `
@@ -1252,7 +1286,7 @@ function renderRosterGrid(containerId, list) {
         if (isConfirmed) {
             const cs = p.confirmedSchedule;
             statusBadgeHtml = `
-                <span class="status-badge confirmed">${cs.date.slice(5)} ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</span>
+                <span class="status-badge confirmed">${cs.date.slice(5)} ${cs.time} 확정</span>
                 <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다">취소</button>
             `;
         } else if (reviewers.length === 0) {
@@ -1444,7 +1478,7 @@ function renderMonthlyCalendar() {
         let chipsHtml = '';
         if (isConfirmed) {
             badgeHtml = `<span class="cal-day-badge badge-confirmed">확정</span>`;
-            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</div>`;
+            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">${cs.time} 확정</div>`;
         } else if (matchPeriods.length > 0) {
             badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
             chipsHtml = `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${matchPeriods.map(k => getPeriod(k).label).join('·')} 가능</div>`;

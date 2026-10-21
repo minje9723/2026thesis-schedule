@@ -485,6 +485,7 @@ a {
 }
 
 .legend-color-box.confirmed { background: #8b5cf6; }
+.legend-color-box.open { background: #d1fae5; border: 2px solid #34d399; }
 
 .legend-cal-tip {
     color: var(--text-muted);
@@ -505,23 +506,63 @@ a {
 .prof-pick-banner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
+    justify-content: flex-end;
     margin-bottom: 12px;
-    padding: 10px 14px;
-    border-radius: var(--radius-md);
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    font-size: 0.85rem;
 }
 
+.prof-pick-banner[hidden] {
+    display: none;
+}
+
+.prof-pick-banner #profPickText:empty {
+    display: none;
+}
 
 .prof-pick-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
+}
+
+.prof-pick-actions .btn {
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.prof-pick-actions .btn:hover {
+    transform: translateY(-2px);
+}
+
+.prof-pick-actions .btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+#btnProfPickAll {
+    background: #ffffff;
+    color: #047857;
+    border: 1.5px solid #34d399;
+    box-shadow: 0 2px 6px rgba(52, 211, 153, 0.15);
+}
+
+#btnProfPickAll:hover {
+    background: #ecfdf5;
+    box-shadow: 0 6px 14px rgba(52, 211, 153, 0.3);
+}
+
+#btnProfPickDone {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+#btnProfPickDone:hover {
+    box-shadow: 0 8px 18px rgba(16, 185, 129, 0.45);
 }
 
 /* 선택 모드의 날짜 칸: 칸 전체 = 하루 일괄 선택/해제, 위 [오전] / 아래 [오후] = 따로 선택 */
@@ -624,8 +665,20 @@ a {
 /* 전체 발표자 명단 창 */
 .presenter-list-table {
     width: 100%;
+    min-width: 420px;
     border-collapse: collapse;
     font-size: 0.85rem;
+}
+
+#presenterListContent {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.presenter-list-table th:first-child,
+.presenter-list-table td:first-child {
+    white-space: nowrap;
+    width: 1%;
 }
 
 .presenter-list-table th,
@@ -715,6 +768,8 @@ a {
 }
 
 .cat-pill {
+    display: inline-block;
+    white-space: nowrap;
     padding: 3px 10px;
     border-radius: var(--radius-full);
     font-size: 0.75rem;
@@ -1196,43 +1251,35 @@ a {
 /* Professor Initial Badges in Calendar */
 .cal-prof-initials-wrap {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    flex-wrap: nowrap;
+    gap: 5px;
     align-items: center;
     margin-top: 4px;
 }
 
 .prof-initial-badge {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.72rem;
-    font-weight: 700;
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 800;
     line-height: 1;
+    white-space: nowrap;
     cursor: default;
+    background: none;
+    border: none;
+    padding: 0;
     transition: transform 0.15s ease;
 }
 
 .prof-initial-badge:hover {
-    transform: scale(1.15);
+    transform: scale(1.2);
 }
 
 .prof-initial-badge.is-int {
-    background: #eff6ff;
     color: #1d4ed8;
-    border: 1px solid #bfdbfe;
 }
 
 .prof-initial-badge.is-ext {
-    background: #fffbeb;
     color: #b45309;
-    border: 1px solid #fde68a;
-    border-radius: 6px;
-    width: auto;
-    padding: 0 4px;
 }
 
 .cal-day-cell {
@@ -1278,6 +1325,75 @@ a {
     font-weight: 700;
     font-size: 0.95rem;
     color: var(--text-primary);
+}
+
+.cal-day-cell.is-holiday .cal-day-num {
+    color: #e11d2e;
+}
+
+.cal-day-cell.is-reviewable {
+    box-shadow: inset 0 0 0 2px #34d399;
+    background: #f0fdf8;
+}
+
+.cal-reviewable-badge {
+    display: inline-block;
+    margin-bottom: 4px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    white-space: nowrap;
+}
+
+/* 홈 달력 칸: 배지·확정 칩·교수님 이니셜을 가운데 정렬하고, 덩어리 단위로만 줄바꿈 */
+.prof-cal-cell:not(.pick-mode) .cal-day-content {
+    align-items: center;
+    text-align: center;
+    text-wrap: balance;
+}
+
+.prof-cal-cell .cal-slot-chip.confirmed-chip {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0 4px;
+    width: 100%;
+    margin-bottom: 0 !important;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+
+.prof-cal-cell .cal-slot-chip.confirmed-chip > span {
+    white-space: nowrap;
+}
+
+.prof-cal-cell:not(.pick-mode) .cal-day-content {
+    flex: 1;
+}
+
+.prof-cal-cell .cal-prof-initials-wrap {
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0;
+    margin-top: auto;
+    padding-top: 2px;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.prof-cal-cell .prof-initial-badge {
+    font-size: clamp(0.56rem, 0.85vw, 0.74rem);
+    letter-spacing: -0.1em;
+    font-weight: 800;
+    width: auto;
+    padding: 0 0.5px;
 }
 
 .cal-day-badge {
@@ -2255,13 +2371,13 @@ a {
         font-size: 0.82rem;
     }
     .cal-prof-initials-wrap {
-        gap: 2px;
+        gap: 0;
         margin-top: 2px;
     }
     .prof-initial-badge {
-        width: 19px;
-        height: 19px;
-        font-size: 0.65rem;
+        width: auto;
+        height: auto;
+        font-size: 0.62rem;
     }
 
     /* Sector 2: Summary Stats (2-Column Grid on Mobile) */

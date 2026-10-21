@@ -84,25 +84,10 @@
                     </div>
                 </div>
 
-                <!-- Professor Filter Bar (내부 표기 삭제 및 외부 1~4 확장 적용) -->
+                <!-- Professor Filter Bar (script.js의 PROFESSORS로 생성) -->
                 <div class="prof-filter-toolbar">
                     <div class="prof-filter-label">교수님별 필터:</div>
-                    <div class="prof-filter-chips" id="profFilterChips">
-                        <button class="prof-chip active" data-prof="all">전체 교수님 종합 (9인)</button>
-                        <span class="filter-divider">|</span>
-                        <!-- Internal 5 -->
-                        <button class="prof-chip" data-prof="김수철 교수님">김수철</button>
-                        <button class="prof-chip" data-prof="이상옥 교수님">이상옥</button>
-                        <button class="prof-chip" data-prof="권희홍 교수님">권희홍</button>
-                        <button class="prof-chip" data-prof="한민수 교수님">한민수</button>
-                        <button class="prof-chip" data-prof="정용재 교수님">정용재</button>
-                        <span class="filter-divider">|</span>
-                        <!-- External 4 -->
-                        <button class="prof-chip" data-prof="외부 1">외부 1</button>
-                        <button class="prof-chip" data-prof="외부 2">외부 2</button>
-                        <button class="prof-chip" data-prof="외부 3">외부 3</button>
-                        <button class="prof-chip" data-prof="외부 4">외부 4</button>
-                    </div>
+                    <div class="prof-filter-chips" id="profFilterChips"></div>
                 </div>
 
                 <!-- Calendar Navigation & Legend Bar -->
@@ -112,8 +97,9 @@
                         <button class="btn-chip" id="btnProfDec">2026년 12월 캘린더</button>
                     </div>
                     <div class="prof-cal-legend">
-                        <span class="legend-chip-item"><span class="legend-color-box many"></span> 참석 가능 교수님 (성 표기:
-                            김·이·권·한·정·외1~외4)</span>
+                        <span class="legend-chip-item">참석 가능 교수님 (성 표기):
+                            <span class="prof-initial-badge is-int">내</span> 내부
+                            <span class="prof-initial-badge is-ext">외</span> 외부</span>
                         <span class="legend-chip-item"><span class="legend-color-box confirmed"></span> 심사 확정</span>
                         <span class="legend-cal-tip">💡 날짜를 클릭하면 <strong>30분 단위 시간표에서 발표자 입력 후 확정/취소</strong>가
                             가능합니다.</span>
@@ -134,23 +120,23 @@
             <!-- SECTOR 2: SUMMARY STATS -->
             <section class="overview-stats-banner" style="margin-top: 36px;">
                 <div class="stats-card">
-                    <div class="stat-number" id="statTotalCount">10</div>
+                    <div class="stat-number" id="statTotalCount">-</div>
                     <div class="stat-label">전체 발표자 (각 30분)</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stat-number text-phd" id="statPhdGradCount">1</div>
+                    <div class="stat-number text-phd" id="statPhdGradCount">-</div>
                     <div class="stat-label">박사 졸업 (내부3+외부2)</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stat-number text-prop" id="statPhdPropCount">4</div>
+                    <div class="stat-number text-prop" id="statPhdPropCount">-</div>
                     <div class="stat-label">박사 주제 (내·외부 자유)</div>
                 </div>
                 <div class="stats-card">
-                    <div class="stat-number text-ms" id="statMsCount">5</div>
+                    <div class="stat-number text-ms" id="statMsCount">-</div>
                     <div class="stat-label">석사 졸업 (내·외부 자유)</div>
                 </div>
                 <div class="stats-card highlight-card">
-                    <div class="stat-number text-confirmed" id="statConfirmedCount">1</div>
+                    <div class="stat-number text-confirmed" id="statConfirmedCount">-</div>
                     <div class="stat-label">심사 확정 완료</div>
                 </div>
             </section>
@@ -169,7 +155,7 @@
                     <div class="category-header">
                         <div class="cat-title-wrap">
                             <span class="cat-pill pill-phd-grad">박사 졸업발표</span>
-                            <h3>학위청구논문 심사 (총 1명)</h3>
+                            <h3>학위청구논문 심사</h3>
                         </div>
                         <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부 3인 + 외부 2인 (총 5인 심사)</strong></span>
                     </div>
@@ -181,7 +167,7 @@
                     <div class="category-header">
                         <div class="cat-title-wrap">
                             <span class="cat-pill pill-phd-prop">박사 주제발표</span>
-                            <h3>연구계획/주제발표 (총 4명)</h3>
+                            <h3>연구계획/주제발표</h3>
                         </div>
                         <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부·외부 심사위원 자유 구성</strong></span>
                     </div>
@@ -193,7 +179,7 @@
                     <div class="category-header">
                         <div class="cat-title-wrap">
                             <span class="cat-pill pill-ms-grad">석사 졸업발표</span>
-                            <h3>석사학위 논문 심사 (총 5명)</h3>
+                            <h3>석사학위 논문 심사</h3>
                         </div>
                         <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부·외부 심사위원 자유 구성</strong></span>
                     </div>
@@ -237,7 +223,7 @@
             </div>
 
             <!-- Presenter Profile Banner -->
-            <section class="presenter-banner" id="presenterBanner">
+            <section class="presenter-banner">
                 <div class="banner-main">
                     <div class="badge-wrapper">
                         <span class="degree-badge" id="bannerDegree">박사 졸업발표</span>
@@ -339,9 +325,6 @@
                     <div class="time-range-hint">
                         운영 시간: <strong>오전 09:00 ~ 오후 18:30 (30분 간격 슬롯)</strong>
                     </div>
-                    <div class="week-filter-status">
-                        <label><input type="checkbox" id="chkOnlyWeekdays" checked> 주말 숨기기 (월~금)</label>
-                    </div>
                 </div>
                 <div class="weekly-matrix-container">
                     <div class="weekly-matrix" id="weeklyMatrix"></div>
@@ -357,16 +340,6 @@
                         <button id="btnNextDay" class="icon-nav-btn">&gt;</button>
                         <input type="date" id="directDatePicker" min="2026-11-01" max="2026-12-31" value="2026-11-27"
                             class="styled-date-input">
-                    </div>
-                    <div class="day-actions">
-                        <button id="btnConfirmSlot" class="btn btn-success">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2"
-                                fill="none">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                <polyline points="22 4 12 14.01 9 11.01" />
-                            </svg>
-                            이 날짜로 30분 심사 확정하기
-                        </button>
                     </div>
                 </div>
                 <div class="daily-matrix-container">
@@ -395,7 +368,7 @@
         </main>
     </div>
 
-    <!-- MODAL: PROFESSOR AVAILABILITY INPUT (외부 1, 외부 2 적용) -->
+    <!-- MODAL: PROFESSOR AVAILABILITY INPUT -->
     <div class="modal-backdrop" id="modalProfAvail">
         <div class="modal-dialog modal-xl">
             <div class="modal-header">
@@ -409,21 +382,7 @@
                 <div class="prof-avail-header-bar">
                     <div class="prof-select-group">
                         <label for="selectProfTarget"><strong>교수님 선택:</strong></label>
-                        <select id="selectProfTarget" class="styled-select prof-main-select">
-                            <optgroup label="내부 심사위원 (5인)">
-                                <option value="김수철 교수님">김수철 교수님</option>
-                                <option value="이상옥 교수님">이상옥 교수님</option>
-                                <option value="권희홍 교수님">권희홍 교수님</option>
-                                <option value="한민수 교수님">한민수 교수님</option>
-                                <option value="정용재 교수님">정용재 교수님</option>
-                            </optgroup>
-                            <optgroup label="외부 심사위원 (4인)">
-                                <option value="외부 1">외부 1</option>
-                                <option value="외부 2">외부 2</option>
-                                <option value="외부 3">외부 3</option>
-                                <option value="외부 4">외부 4</option>
-                            </optgroup>
-                        </select>
+                        <select id="selectProfTarget" class="styled-select prof-main-select"></select>
                     </div>
 
                     <div class="prof-quick-actions">
@@ -447,7 +406,7 @@
                 <div class="avail-legend-bar">
                     <div class="legend-chip"><span class="box-sample avail"></span> 가능 (Available)</div>
                     <div class="legend-chip"><span class="box-sample unavail"></span> 불가 (Unavailable)</div>
-                    <div class="save-status-indicator" id="profAutoSaveIndicator">선택 즉시 전체 발표자 일정에 자동 반영됩니다.</div>
+                    <div class="save-status-indicator">선택 즉시 전체 발표자 일정에 자동 반영됩니다.</div>
                 </div>
             </div>
             <div class="modal-footer">

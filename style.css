@@ -10,9 +10,6 @@
     --primary-light: #eef2ff;
     --primary-border: #c7d2fe;
 
-    --secondary: #0ea5e9;       /* Sky */
-    --secondary-hover: #0284c7;
-
     --accent-golden: #10b981;    /* Emerald for Golden slot */
     --golden-light: #ecfdf5;
     --golden-border: #a7f3d0;
@@ -26,21 +23,11 @@
     --confirmed-border: #ddd6fe;
 
     --danger: #ef4444;
-    --danger-light: #fef2f2;
 
     /* Category Specific Tints */
     --phd-color: #7c3aed;       /* Purple for PhD Grad */
     --prop-color: #0284c7;      /* Ocean Blue for PhD Proposal */
     --ms-color: #059669;        /* Teal for Master Grad */
-
-    /* Professor Individual Accent Colors */
-    --col-prof1: #2563eb;       /* 김수철 */
-    --col-prof2: #4f46e5;       /* 이상옥 */
-    --col-prof3: #7c3aed;       /* 권희홍 */
-    --col-prof4: #0d9488;       /* 한민수 */
-    --col-prof5: #059669;       /* 정용재 */
-    --col-prof6: #d97706;       /* 외부 1 */
-    --col-prof7: #ea580c;       /* 외부 2 */
 
     /* Neutrals */
     --bg-page: #f8fafc;
@@ -52,7 +39,6 @@
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
-    --text-inverse: #ffffff;
 
     /* Elevation & Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -405,13 +391,6 @@ a {
     margin-bottom: 6px;
 }
 
-.sector-subtitle {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    max-width: 820px;
-    line-height: 1.5;
-}
-
 /* Professor Filter Toolbar */
 .prof-filter-toolbar {
     display: flex;
@@ -517,9 +496,6 @@ a {
     display: inline-block;
 }
 
-.legend-color-box.many { background: #10b981; }
-.legend-color-box.moderate { background: #0ea5e9; }
-.legend-color-box.some { background: #cbd5e1; }
 .legend-color-box.confirmed { background: #8b5cf6; }
 
 .legend-cal-tip {
@@ -535,29 +511,6 @@ a {
 .prof-cal-cell.has-confirmed {
     border-color: var(--confirmed-border);
     background: #faf8ff;
-}
-
-.prof-chip-int {
-    background: #eff6ff !important;
-    color: #1e40af !important;
-    border-left: 3px solid #3b82f6 !important;
-    font-weight: 600;
-}
-
-.prof-chip-ext {
-    background: #fffbeb !important;
-    color: #92400e !important;
-    border-left: 3px solid #f59e0b !important;
-    font-weight: 600;
-}
-
-.chip-mini-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    display: inline-block;
-    margin-right: 4px;
 }
 
 /* ==========================================================================
@@ -805,16 +758,6 @@ a {
     padding: 3px 9px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--primary-border);
-}
-
-.duration-badge-pill {
-    background: #ecfdf5;
-    color: #047857;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    border: 1px solid #a7f3d0;
 }
 
 .status-badge {
@@ -1086,8 +1029,6 @@ a {
 }
 
 .legend-dot.golden { background: #10b981; }
-.legend-dot.majority { background: #0ea5e9; }
-.legend-dot.partial { background: #cbd5e1; }
 .legend-dot.confirmed { background: #8b5cf6; }
 
 .legend-tip {
@@ -1200,9 +1141,6 @@ a {
     color: var(--text-primary);
 }
 
-.cal-day-cell.is-sun .cal-day-num { color: #ef4444; }
-.cal-day-cell.is-sat .cal-day-num { color: #3b82f6; }
-
 .cal-day-badge {
     font-size: 0.68rem;
     padding: 2px 6px;
@@ -1214,11 +1152,6 @@ a {
     background: var(--golden-light);
     color: #065f46;
     border: 1px solid var(--golden-border);
-}
-
-.badge-majority {
-    background: #e0f2fe;
-    color: #075985;
 }
 
 .badge-confirmed {
@@ -1261,13 +1194,6 @@ a {
     border-left: 3px solid #8b5cf6;
 }
 
-.cal-day-footer {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    text-align: right;
-    margin-top: 4px;
-}
-
 /* Weekly Timetable */
 .week-toolbar {
     display: flex;
@@ -1294,15 +1220,6 @@ a {
 .time-range-hint {
     font-size: 0.825rem;
     color: var(--text-secondary);
-}
-
-.week-filter-status label {
-    font-size: 0.825rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 .weekly-matrix-container {
@@ -1364,14 +1281,6 @@ a {
     background: #d1fae5 !important;
     color: #065f46;
     font-weight: 700;
-}
-.slot-most {
-    background: #e0f2fe !important;
-    color: #0369a1;
-}
-.slot-partial {
-    background: #fef3c7 !important;
-    color: #92400e;
 }
 .slot-none {
     background: #ffffff;
@@ -2098,10 +2007,6 @@ a {
         line-height: 1.35;
         margin-bottom: 4px;
     }
-    .sector-subtitle {
-        font-size: 0.8rem;
-        line-height: 1.45;
-    }
     .sector-header-actions {
         width: 100%;
     }
@@ -2200,11 +2105,6 @@ a {
     .cal-day-num {
         font-size: 0.82rem;
     }
-    .cal-badge-confirmed {
-        font-size: 0.6rem;
-        padding: 1px 3px;
-        border-radius: 3px;
-    }
     .cal-prof-initials-wrap {
         gap: 2px;
         margin-top: 2px;
@@ -2213,9 +2113,6 @@ a {
         width: 19px;
         height: 19px;
         font-size: 0.65rem;
-    }
-    .cal-day-footer {
-        display: none; /* Hide redundant footer on mobile to keep cells neat */
     }
 
     /* Sector 2: Summary Stats (2-Column Grid on Mobile) */
@@ -2242,10 +2139,6 @@ a {
     /* Sector 3: Presenter Cards (1-Column on Mobile) */
     .presenters-section-group {
         margin-top: 24px;
-    }
-    .roster-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
     }
     .roster-card {
         padding: 14px;
@@ -2292,9 +2185,6 @@ a {
     .banner-main h2 {
         font-size: 1.15rem;
     }
-    .banner-meta {
-        font-size: 0.8rem;
-    }
     .banner-committee {
         min-width: unset;
         width: 100%;
@@ -2322,22 +2212,12 @@ a {
     .subview-panel {
         padding: 14px 12px;
     }
-    .day-header-row {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
     .day-date-picker {
         flex-wrap: wrap;
     }
     .day-date-picker h3 {
         font-size: 1.05rem;
         width: 100%;
-    }
-    .day-actions .btn {
-        width: 100%;
-        justify-content: center;
-        min-height: 40px;
     }
 
     /* Modals: Mobile Optimized */
@@ -2439,14 +2319,6 @@ a {
     }
     .cal-day-num {
         font-size: 0.74rem;
-    }
-    .cal-prof-summary-chip {
-        font-size: 0.58rem;
-        padding: 1px 2px;
-    }
-    .cal-badge-confirmed, .cal-badge-golden {
-        font-size: 0.56rem;
-        padding: 1px 2px;
     }
     .input-slot-student-name {
         width: 125px !important;

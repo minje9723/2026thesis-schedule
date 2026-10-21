@@ -25,12 +25,10 @@ service cloud.firestore {
     }
 
     // 교수님 심사 가능 일정 (문서 이름 = 교수님 이름)
+    // 교수님 목록은 script.js의 PROFESSORS에서 관리하므로 여기서는 이름 길이와 형식만 검사
     match /profAvailability/{profName} {
       allow read: if true;
-      allow create, update: if profName in [
-          '김수철 교수님', '이상옥 교수님', '권희홍 교수님', '한민수 교수님', '정용재 교수님',
-          '외부 1', '외부 2', '외부 3', '외부 4'
-        ]
+      allow create, update: if profName.size() <= 40
         && request.resource.data.keys().hasOnly(['slots'])
         && request.resource.data.slots is list
         && request.resource.data.slots.size() <= 1000;

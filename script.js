@@ -2,7 +2,6 @@
  * 대학원 학위논문 발표 일정 조율 플랫폼 (script.js)
  * - 교수님 심사 가능 캘린더 (최상단 메인 섹터)
  * - 교수님 가능 일정(30분 단위) 종합 취합 및 필터링
- * - 외부 심사위원: '외부 1', '외부 2' 호칭 적용
  * - 확정된 일정 원클릭 취소 기능 전면 지원
  * - 교수님별 심사가능현황에서 발표자 선택/입력 후 확정 & 취소 지원
  */
@@ -14,29 +13,57 @@
 const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v7';
 const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v7';
 
+// 심사위원 교수님 목록 (화면의 필터·선택 목록은 모두 여기서 만들어짐)
 const PROFESSORS = {
-    internal: [
-        { name: "김수철 교수님", type: "internal" },
-        { name: "이상옥 교수님", type: "internal" },
-        { name: "권희홍 교수님", type: "internal" },
-        { name: "한민수 교수님", type: "internal" },
-        { name: "정용재 교수님", type: "internal" }
-    ],
-    external: [
-        { name: "외부 1", type: "external" },
-        { name: "외부 2", type: "external" },
-        { name: "외부 3", type: "external" },
-        { name: "외부 4", type: "external" }
-    ]
+    internal: ["김수철 교수님", "이상옥 교수님", "권희홍 교수님", "한민수 교수님", "정용재 교수님"],
+    external: ["정광용 교수님", "조남철 교수님", "박정혜 교수님", "이광웅 교수님"]
 };
 
-const ALL_PROF_NAMES = [
-    ...PROFESSORS.internal.map(p => p.name),
-    ...PROFESSORS.external.map(p => p.name)
-];
+const ALL_PROF_NAMES = [...PROFESSORS.internal, ...PROFESSORS.external];
+
+const SCHEDULE_YEAR = 2026;
+const SCHEDULE_MONTHS = [11, 12];
+const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function getProfType(pName) {
-    return PROFESSORS.external.some(p => p.name === pName) ? 'external' : 'internal';
+    return PROFESSORS.external.includes(pName) ? 'external' : 'internal';
+}
+
+function getProfShortName(pName) {
+    return pName.replace(' 교수님', '');
+}
+
+function profTypeBadgeHtml(type) {
+    return type === 'external'
+        ? '<span class="badge-tag-external-xs">외부</span>'
+        : '<span class="badge-tag-internal-xs">내부</span>';
+}
+
+function toDateStr(year, month, day) {
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+// 해당 월의 평일(월~금) 목록
+function getWeekdays(month) {
+    const days = [];
+    const daysInMonth = new Date(SCHEDULE_YEAR, month, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dayOfWeek = new Date(SCHEDULE_YEAR, month - 1, d).getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        days.push({ dateStr: toDateStr(SCHEDULE_YEAR, month, d), dayNum: d, dayName: DAY_NAMES[dayOfWeek] });
+    }
+    return days;
+}
+
+// 일정 기간(11~12월) 전체 평일의 날짜 목록
+function getAllScheduleDates() {
+    return SCHEDULE_MONTHS.flatMap(m => getWeekdays(m).map(w => w.dateStr));
+}
+
+function formatDateWithDay(dateStr) {
+    const [y, m, d] = dateStr.split('-');
+    const dayName = DAY_NAMES[new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).getDay()];
+    return { y, m, d, dayName };
 }
 
 const TIME_SLOTS = [
@@ -60,18 +87,14 @@ function getEndTime30Min(startTimeStr) {
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
-// 캘린더용 교수님 성(Initial) 추출 (김, 이, 권, 한, 정, 외1~외4)
+// 캘린더용 교수님 성(Initial) 추출 (내부/외부는 배지 색으로 구분)
 function getProfInitial(pName) {
-    const extMatch = pName.match(/외부\s*([0-9]+)/);
-    if (extMatch) return `외${extMatch[1]}`;
-    if (pName.startsWith('외')) return pName;
-    const clean = pName.replace(' 교수님', '').trim();
-    return clean.charAt(0);
+    return getProfShortName(pName).charAt(0);
 }
 
-// 10 Presenters
+// 기본(샘플) 발표자 명단 - Firestore가 비어 있을 때 최초 1회 채움
 const DEFAULT_PRESENTERS = [
-    // 1. 박사졸업발표 (김민제: 내부 3 + 외부 2 = 총 5인)
+    // 1. 박사졸업발표 (내부 3 + 외부 2 = 총 5인)
     {
         id: "p_phd_1",
         name: "김민제",
@@ -83,8 +106,8 @@ const DEFAULT_PRESENTERS = [
             { id: "r_p1_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
             { id: "r_p1_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
             { id: "r_p1_3", name: "권희홍 교수님", role: "심사위원", type: "internal" },
-            { id: "r_p1_4", name: "외부 1", role: "심사위원", type: "external" },
-            { id: "r_p1_5", name: "외부 2", role: "심사위원", type: "external" }
+            { id: "r_p1_4", name: "정광용 교수님", role: "심사위원", type: "external" },
+            { id: "r_p1_5", name: "조남철 교수님", role: "심사위원", type: "external" }
         ],
         confirmedSchedule: {
             date: "2026-11-27",
@@ -94,7 +117,7 @@ const DEFAULT_PRESENTERS = [
         }
     },
 
-    // 2. 박사주제발표 (4명: 내부 3인)
+    // 2. 박사주제발표 (4명)
     {
         id: "p_prop_1",
         name: "강민지",
@@ -152,7 +175,7 @@ const DEFAULT_PRESENTERS = [
         confirmedSchedule: null
     },
 
-    // 3. 석사졸업발표 (5명: 내부 3인)
+    // 3. 석사졸업발표 (6명)
     {
         id: "p_ms_1",
         name: "김동녘",
@@ -222,6 +245,16 @@ const DEFAULT_PRESENTERS = [
             { id: "r_ms5_3", name: "정용재 교수님", role: "심사위원", type: "internal" }
         ],
         confirmedSchedule: null
+    },
+    {
+        id: "p_ms_6",
+        name: "안바르",
+        category: "석사졸업발표",
+        duration: 30,
+        thesisTitle: "석사학위 청구논문 심사",
+        location: "세미나실 3호",
+        reviewers: [],
+        confirmedSchedule: null
     }
 ];
 
@@ -259,20 +292,20 @@ function generateDefaultProfAvailability() {
             "2026-11-26 14:00", "2026-11-26 14:30",
             "2026-12-01 14:00", "2026-12-01 14:30"
         ],
-        "외부 1": [
+        "정광용 교수님": [
             "2026-11-27 13:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
             "2026-12-04 14:00", "2026-12-04 14:30"
         ],
-        "외부 2": [
+        "조남철 교수님": [
             "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
             "2026-12-04 14:00", "2026-12-04 14:30"
         ],
-        "외부 3": [
+        "박정혜 교수님": [
             "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
             "2026-11-27 14:00", "2026-11-27 14:30",
             "2026-12-04 14:00", "2026-12-04 14:30"
         ],
-        "외부 4": [
+        "이광웅 교수님": [
             "2026-11-20 14:00", "2026-11-20 14:30",
             "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
             "2026-12-04 14:00", "2026-12-04 14:30"
@@ -286,13 +319,13 @@ let appState = {
     activePage: 'home',
     currentPresenterId: 'p_phd_1',
     currentSubView: 'month',
-    calendarYear: 2026,
+    calendarMonth: 11,
     profCalendarMonth: 11,
     profFilterTarget: 'all',
     currentDayDate: '2026-11-27',
     currentWeekIndex: 0,
     modalProfInputMonth: 11,
-    modalProfTargetName: "김수철 교수님"
+    modalProfTargetName: ALL_PROF_NAMES[0]
 };
 
 function loadState() {
@@ -459,10 +492,11 @@ function applyPresentersSnapshot(snapshot) {
 }
 
 function applyProfAvailSnapshot(snapshot) {
+    // 현재 명단에 없는 교수님 문서(이름 변경 전 문서 등)는 무시
     const next = {};
     ALL_PROF_NAMES.forEach(pName => { next[pName] = []; });
     snapshot.docs.forEach(doc => {
-        next[doc.id] = (doc.data().slots || []).slice();
+        if (ALL_PROF_NAMES.includes(doc.id)) next[doc.id] = (doc.data().slots || []).slice();
     });
     appState.profAvailability = next;
     Object.keys(syncedProfSlots).forEach(k => delete syncedProfSlots[k]);
@@ -644,32 +678,65 @@ function analyzeSlotForStudent(presenter, dateTimeStr) {
         total,
         availableCount,
         isAllMatch,
-        ratio: total > 0 ? (availableCount / total) : 0,
         availableNames,
         unavailableNames
     };
 }
 
 function countStudentGoldenSlotsOnDate(presenter, dateStr) {
-    let count = 0;
-    TIME_SLOTS.forEach(time => {
-        const dt = `${dateStr} ${time}`;
-        if (analyzeSlotForStudent(presenter, dt).isAllMatch) {
-            count++;
-        }
-    });
-    return count;
+    return TIME_SLOTS.filter(time => analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch).length;
 }
 
-// Action: Cancel a student's confirmed schedule
-function cancelStudentConfirmation(studentId) {
-    const student = appState.presenters.find(p => p.id === studentId);
-    if (student) {
-        student.confirmedSchedule = null;
-        saveState();
-        renderAll();
-        showToast(`${student.name}님의 심사 확정이 취소되었습니다.`);
-    }
+// 심사위원 전원이 가능한 30분 슬롯 전체 (11~12월 평일)
+function findAllMatchSlots(presenter) {
+    const slots = [];
+    getAllScheduleDates().forEach(dateStr => {
+        TIME_SLOTS.forEach(time => {
+            if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch) slots.push({ dateStr, time });
+        });
+    });
+    return slots;
+}
+
+function confirmSchedule(presenter, dateStr, time, location) {
+    presenter.confirmedSchedule = { date: dateStr, time, duration: 30, location };
+    saveState();
+}
+
+// 확인 창을 띄운 뒤 확정 취소. 취소했으면 true
+function cancelConfirmationWithPrompt(presenter) {
+    if (!confirm(`${presenter.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) return false;
+    presenter.confirmedSchedule = null;
+    saveState();
+    renderAll();
+    showToast(`${presenter.name}님의 심사 확정이 취소되었습니다.`);
+    return true;
+}
+
+// 월~금 5열 캘린더 (앞뒤 빈칸은 이전/다음 달 날짜로 채움). fillDayCell(cell, weekday)로 각 날짜 칸을 채움
+function renderWeekdayCalendar(grid, month, fillDayCell) {
+    grid.innerHTML = '';
+    const addPaddingCell = dayNum => {
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell other-month';
+        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${dayNum}</span></div>`;
+        grid.appendChild(cell);
+    };
+
+    const firstDayOfWeek = new Date(SCHEDULE_YEAR, month - 1, 1).getDay();
+    const leadingPadding = (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) ? firstDayOfWeek - 1 : 0;
+    const prevMonthDays = new Date(SCHEDULE_YEAR, month - 1, 0).getDate();
+    for (let p = leadingPadding - 1; p >= 0; p--) addPaddingCell(prevMonthDays - p);
+
+    const weekdays = getWeekdays(month);
+    weekdays.forEach(w => {
+        const cell = document.createElement('div');
+        fillDayCell(cell, w);
+        grid.appendChild(cell);
+    });
+
+    const trailingPadding = (5 - ((leadingPadding + weekdays.length) % 5)) % 5;
+    for (let t = 1; t <= trailingPadding; t++) addPaddingCell(t);
 }
 
 // ==========================================================================
@@ -677,49 +744,13 @@ function cancelStudentConfirmation(studentId) {
 // ==========================================================================
 
 function renderProfCalendarHero() {
-    const year = 2026;
     const month = appState.profCalendarMonth;
     const filter = appState.profFilterTarget;
-    const grid = document.getElementById('profCalendarGrid');
-    grid.innerHTML = '';
 
     document.getElementById('btnProfNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
     document.getElementById('btnProfDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
-    const firstDate = new Date(year, month - 1, 1);
-    const firstDayOfWeek = firstDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const prevMonthDays = new Date(year, month - 1, 0).getDate();
-
-    // 5-Day Weekday Grid (월=0, 화=1, 수=2, 목=3, 금=4). 주말(토, 일) 완전 제외!
-    let leadingPadding = 0;
-    if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
-        leadingPadding = firstDayOfWeek - 1;
-    }
-
-    // Previous month padding cells (weekdays only)
-    if (leadingPadding > 0) {
-        for (let p = leadingPadding - 1; p >= 0; p--) {
-            const pDay = prevMonthDays - p;
-            const cell = document.createElement('div');
-            cell.className = 'cal-day-cell other-month';
-            cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${pDay}</span></div>`;
-            grid.appendChild(cell);
-        }
-    }
-
-    let renderedCount = leadingPadding;
-
-    // Current month weekdays
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(year, month - 1, d).getDay();
-
-        // 주말(토요일=6, 일요일=0) 삭제!
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
-        renderedCount++;
-
+    renderWeekdayCalendar(document.getElementById('profCalendarGrid'), month, (cell, { dateStr, dayNum }) => {
         let availableProfs = getProfessorsAvailableOnDate(dateStr);
         if (filter !== 'all') {
             availableProfs = availableProfs.filter(name => name === filter);
@@ -729,50 +760,30 @@ function renderProfCalendarHero() {
             p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
         );
 
-        const cell = document.createElement('div');
-        let classes = 'cal-day-cell prof-cal-cell';
-        if (confirmedHere.length > 0) classes += ' has-confirmed';
-        cell.className = classes;
+        cell.className = `cal-day-cell prof-cal-cell ${confirmedHere.length > 0 ? 'has-confirmed' : ''}`;
 
-        // "교수 n인 가능" 문구 완전 제거! 확정된 일정만 배지로 표시
-        let badgeHtml = '';
-        if (confirmedHere.length > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
-        }
+        const badgeHtml = confirmedHere.length > 0
+            ? `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`
+            : '';
 
-        let contentHtml = '';
+        let contentHtml = confirmedHere.map(item => `
+            <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
+                ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+            </div>
+        `).join('');
 
-        // 확정된 발표자가 있는 경우 간결하게 표시
-        if (confirmedHere.length > 0) {
-            confirmedHere.forEach(item => {
-                contentHtml += `
-                    <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
-                        ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
-                    </div>
-                `;
-            });
-        }
-
-        // 가능 교수님 성함은 성(Initial)만 표기! (김, 이, 권, 한, 정, 외1, 외2)
-        // "교수 n인 가능" 및 "외 n인" 문구 전면 제거
+        // 가능 교수님은 성(Initial)만 표기, 내부(파랑)/외부(주황)는 배지 색으로 구분
         if (availableProfs.length > 0) {
-            contentHtml += `<div class="cal-prof-initials-wrap">`;
-            availableProfs.forEach(pName => {
-                const isExt = pName.includes('외부');
-                const initial = getProfInitial(pName);
-                contentHtml += `
-                    <span class="prof-initial-badge ${isExt ? 'is-ext' : 'is-int'}" 
-                          title="${pName} 참석 가능">
-                        ${initial}
-                    </span>
-                `;
-            });
-            contentHtml += `</div>`;
+            contentHtml += `<div class="cal-prof-initials-wrap">${availableProfs.map(pName => `
+                <span class="prof-initial-badge ${getProfType(pName) === 'external' ? 'is-ext' : 'is-int'}" title="${pName} 참석 가능">
+                    ${getProfInitial(pName)}
+                </span>
+            `).join('')}</div>`;
         }
 
         cell.innerHTML = `
             <div class="cal-day-header">
-                <span class="cal-day-num">${d}</span>
+                <span class="cal-day-num">${dayNum}</span>
                 ${badgeHtml}
             </div>
             <div class="cal-day-content">${contentHtml}</div>
@@ -781,18 +792,35 @@ function renderProfCalendarHero() {
         cell.addEventListener('click', () => {
             openDateProfDetailModal(dateStr);
         });
+    });
+}
 
-        grid.appendChild(cell);
-    }
+// 교수님별 필터 칩 (PROFESSORS 목록으로 생성)
+function renderProfFilterChips() {
+    const container = document.getElementById('profFilterChips');
+    const chip = (value, label) =>
+        `<button class="prof-chip ${appState.profFilterTarget === value ? 'active' : ''}" data-prof="${value}">${label}</button>`;
+    const group = names => names.map(n => chip(n, getProfShortName(n))).join('');
 
-    // 5열 채우기용 다음 달 평일 패딩
-    const trailingPadding = (5 - (renderedCount % 5)) % 5;
-    for (let t = 1; t <= trailingPadding; t++) {
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${t}</span></div>`;
-        grid.appendChild(cell);
-    }
+    container.innerHTML = chip('all', `전체 교수님 종합 (${ALL_PROF_NAMES.length}인)`)
+        + `<span class="filter-divider">|</span>` + group(PROFESSORS.internal)
+        + `<span class="filter-divider">|</span>` + group(PROFESSORS.external);
+
+    container.querySelectorAll('.prof-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            appState.profFilterTarget = btn.getAttribute('data-prof');
+            renderProfFilterChips();
+            renderProfCalendarHero();
+        });
+    });
+}
+
+// 교수님 가능 일정 입력 모달의 교수님 선택 목록
+function renderProfTargetOptions() {
+    const options = names => names.map(n => `<option value="${n}">${n}</option>`).join('');
+    document.getElementById('selectProfTarget').innerHTML =
+        `<optgroup label="내부 심사위원 (${PROFESSORS.internal.length}인)">${options(PROFESSORS.internal)}</optgroup>`
+        + `<optgroup label="외부 심사위원 (${PROFESSORS.external.length}인)">${options(PROFESSORS.external)}</optgroup>`;
 }
 
 /**
@@ -804,15 +832,13 @@ function renderProfCalendarHero() {
  */
 function openDateProfDetailModal(dateStr) {
     const modal = document.getElementById('modalDateProfDetail');
-    const [y, m, d] = dateStr.split('-');
-    const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-    const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+    const { y, m, d, dayName } = formatDateWithDay(dateStr);
 
     document.getElementById('dateProfDetailTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일) 교수님별 심사 가능 현황 및 발표자 확정`;
 
     const container = document.getElementById('dateProfDetailContent');
 
-    // Datalist of all 10 presenters for browser autocomplete
+    // 발표자 이름 자동완성 목록
     let datalistHtml = `
         <datalist id="studentNamesDatalist">
             ${appState.presenters.map(s => `
@@ -857,8 +883,8 @@ function openDateProfDetailModal(dateStr) {
         let profTagsHtml = '';
         if (activeProfs.length > 0) {
             profTagsHtml = activeProfs.map(name => {
-                const isExt = name.includes('외부');
-                return `<span class="${isExt ? 'badge-tag-external-xs' : 'badge-tag-internal-xs'}" style="margin-right:4px; margin-bottom:3px; display:inline-block;">${name.replace(' 교수님', '')}</span>`;
+                const isExt = getProfType(name) === 'external';
+                return `<span class="${isExt ? 'badge-tag-external-xs' : 'badge-tag-internal-xs'}" style="margin-right:4px; margin-bottom:3px; display:inline-block;">${getProfShortName(name)}</span>`;
             }).join('');
         } else {
             profTagsHtml = `<span style="color:#94a3b8; font-size:0.8rem;">가능한 교수님 없음</span>`;
@@ -869,7 +895,7 @@ function openDateProfDetailModal(dateStr) {
         let candidatesHtml = '';
         if (fullyMatched.length > 0) {
             candidatesHtml = fullyMatched.map(s => {
-                const isConf = s.confirmedSchedule !== null;
+                const isConf = !!s.confirmedSchedule;
                 const confTag = isConf ? ' [확정됨]' : '';
                 return `
                     <button type="button" class="btn-candidate-chip ${isConf ? 'is-conf' : ''}" 
@@ -958,7 +984,7 @@ function openDateProfDetailModal(dateStr) {
                 if (input) input.focus();
                 return;
             }
-            // Create new presenter
+            // 신규 발표자는 심사위원 미지정 상태로 등록 (이후 [심사위원 선택]에서 지정)
             student = {
                 id: 'p_custom_' + Date.now(),
                 name: enteredName,
@@ -966,11 +992,7 @@ function openDateProfDetailModal(dateStr) {
                 duration: 30,
                 thesisTitle: '학위청구논문 발표',
                 location: '세미나실 1호',
-                reviewers: [
-                    { id: 'r_c_1', name: '김수철 교수님', role: '심사위원장', type: 'internal' },
-                    { id: 'r_c_2', name: '이상옥 교수님', role: '지도교수', type: 'internal' },
-                    { id: 'r_c_3', name: '권희홍 교수님', role: '심사위원', type: 'internal' }
-                ],
+                reviewers: [],
                 confirmedSchedule: null
             };
             appState.presenters.push(student);
@@ -985,25 +1007,16 @@ function openDateProfDetailModal(dateStr) {
         }
 
         // Check committee member availability warning
-        const dt = `${date} ${time}`;
-        const analysis = analyzeSlotForStudent(student, dt);
+        const analysis = analyzeSlotForStudent(student, `${date} ${time}`);
         if (!analysis.isAllMatch && analysis.unavailableNames.length > 0) {
             if (!confirm(`주의: ${student.name}님의 심사위원 중 [${analysis.unavailableNames.join(', ')}] 교수님이 이 시간대에 참석 불가로 표시되어 있습니다.\n그래도 확정하시겠습니까?`)) {
                 return;
             }
         }
 
-        student.confirmedSchedule = {
-            date: date,
-            time: time,
-            duration: 30,
-            location: student.location || "세미나실 1호"
-        };
-
-        saveState();
-        openDateProfDetailModal(date); // Refresh modal view
-        renderProfCalendarHero();
-        renderPresentersSection();
+        confirmSchedule(student, date, time, student.location || "세미나실 1호");
+        renderAll();
+        openDateProfDetailModal(date);
         showToast(`${student.name}님의 발표가 ${date} ${time}으로 최종 확정되었습니다! 🎉`);
     };
 
@@ -1049,15 +1062,8 @@ function openDateProfDetailModal(dateStr) {
             const studentId = btn.getAttribute('data-id');
             const date = btn.getAttribute('data-date');
             const student = appState.presenters.find(p => p.id === studentId);
-            if (!student) return;
-
-            if (confirm(`${student.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) {
-                student.confirmedSchedule = null;
-                saveState();
-                openDateProfDetailModal(date); // Refresh modal view
-                renderProfCalendarHero();
-                renderPresentersSection();
-                showToast(`${student.name}님의 심사 확정이 취소되었습니다.`);
+            if (student && cancelConfirmationWithPrompt(student)) {
+                openDateProfDetailModal(date);
             }
         });
     });
@@ -1066,7 +1072,7 @@ function openDateProfDetailModal(dateStr) {
 }
 
 // ==========================================================================
-// 4. SECTOR 3: 10 PRESENTER ROSTER & MATCHING SUMMARY
+// 4. SECTOR 3: PRESENTER ROSTER & MATCHING SUMMARY
 // ==========================================================================
 
 function renderPresentersSection() {
@@ -1075,7 +1081,7 @@ function renderPresentersSection() {
     const phdGradList = presenters.filter(p => p.category === '박사졸업발표');
     const phdPropList = presenters.filter(p => p.category === '박사주제발표');
     const msList = presenters.filter(p => p.category === '석사졸업발표');
-    const confirmedCount = presenters.filter(p => p.confirmedSchedule !== null).length;
+    const confirmedCount = presenters.filter(p => p.confirmedSchedule).length;
 
     document.getElementById('statTotalCount').textContent = presenters.length;
     document.getElementById('statPhdGradCount').textContent = phdGradList.length;
@@ -1094,18 +1100,8 @@ function renderRosterGrid(containerId, list) {
 
     list.forEach(p => {
         const reviewers = p.reviewers || [];
-        const isConfirmed = p.confirmedSchedule !== null;
-
-        let totalGoldenSlots = 0;
-        [11, 12].forEach(m => {
-            const daysInMonth = new Date(2026, m, 0).getDate();
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dayOfWeek = new Date(2026, m - 1, d).getDay();
-                if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 평일(월~금)만 계산
-                const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                totalGoldenSlots += countStudentGoldenSlotsOnDate(p, dateStr);
-            }
-        });
+        const isConfirmed = !!p.confirmedSchedule;
+        const totalGoldenSlots = findAllMatchSlots(p).length;
 
         const card = document.createElement('div');
         card.className = `roster-card ${isConfirmed ? 'is-confirmed-card' : ''}`;
@@ -1121,6 +1117,8 @@ function renderRosterGrid(containerId, list) {
                     </button>
                 </div>
             `;
+        } else if (reviewers.length === 0) {
+            statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
         } else if (totalGoldenSlots > 0) {
             statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 ${totalGoldenSlots}개 슬롯 발견</span>`;
         } else {
@@ -1128,7 +1126,7 @@ function renderRosterGrid(containerId, list) {
         }
 
         let reviewerListStr = reviewers.length > 0
-            ? reviewers.map(r => `${r.role}:${r.name.replace(' 교수님', '')}`).join(', ')
+            ? reviewers.map(r => `${r.role}:${getProfShortName(r.name)}`).join(', ')
             : '미등록';
 
         card.innerHTML = `
@@ -1162,9 +1160,7 @@ function renderRosterGrid(containerId, list) {
             e.stopPropagation();
             const id = btn.getAttribute('data-id');
             const student = appState.presenters.find(p => p.id === id);
-            if (student && confirm(`${student.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) {
-                cancelStudentConfirmation(id);
-            }
+            if (student) cancelConfirmationWithPrompt(student);
         });
     });
 
@@ -1246,9 +1242,7 @@ function updateDetailBanner() {
         statusBadge.innerHTML = `심사 확정 (${presenter.confirmedSchedule.date} ${presenter.confirmedSchedule.time}~${end}) <button class="btn btn-sm btn-danger btn-banner-cancel" style="padding:1px 6px; font-size:0.7rem; margin-left:6px;">취소</button>`;
         statusBadge.querySelector('.btn-banner-cancel').onclick = (e) => {
             e.stopPropagation();
-            if (confirm(`${presenter.name}님의 심사 확정을 취소하시겠습니까?`)) {
-                cancelStudentConfirmation(presenter.id);
-            }
+            cancelConfirmationWithPrompt(presenter);
         };
     } else {
         statusBadge.className = 'status-badge';
@@ -1258,7 +1252,9 @@ function updateDetailBanner() {
     const reviewers = presenter.reviewers || [];
     const extCount = reviewers.filter(r => r.type === 'external').length;
     const intCount = reviewers.length - extCount;
-    document.getElementById('bannerCommitteeCount').textContent = extCount > 0
+    document.getElementById('bannerCommitteeCount').textContent = reviewers.length === 0
+        ? '심사위원 미지정'
+        : extCount > 0
         ? `총 ${reviewers.length}인 (내부 ${intCount} + 외부 ${extCount})`
         : `총 ${reviewers.length}인 (내부 ${intCount})`;
 
@@ -1277,13 +1273,12 @@ function updateDetailBanner() {
         if (r.role.includes('위원장')) roleClass = 'role-chair';
         else if (r.role.includes('지도')) roleClass = 'role-advisor';
 
-        const typeBadge = r.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : '<span class="badge-tag-internal-xs">내부</span>';
 
         const chip = document.createElement('div');
         chip.className = 'committee-member-chip';
         chip.innerHTML = `
             <div>
-                ${typeBadge}
+                ${profTypeBadgeHtml(r.type)}
                 <span class="member-role-tag ${roleClass}">${r.role}</span>
                 <strong>${r.name}</strong>
             </div>
@@ -1295,79 +1290,34 @@ function updateDetailBanner() {
 
 function renderMonthlyCalendar() {
     const presenter = getCurrentPresenter();
-    const year = 2026;
     const month = appState.calendarMonth;
 
-    document.getElementById('periodLabel').textContent = `${year}년 ${month}월`;
+    document.getElementById('periodLabel').textContent = `${SCHEDULE_YEAR}년 ${month}월`;
     document.getElementById('chipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
     document.getElementById('chipDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
-    const grid = document.getElementById('calendarGridBody');
-    grid.innerHTML = '';
-
-    const firstDate = new Date(year, month - 1, 1);
-    const firstDayOfWeek = firstDate.getDay();
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const prevMonthDays = new Date(year, month - 1, 0).getDate();
-
-    // 5-Day Weekday Grid (월~금). 주말(토, 일) 제외!
-    let leadingPadding = 0;
-    if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
-        leadingPadding = firstDayOfWeek - 1;
-    }
-
-    if (leadingPadding > 0) {
-        for (let p = leadingPadding - 1; p >= 0; p--) {
-            const pDay = prevMonthDays - p;
-            const cell = document.createElement('div');
-            cell.className = 'cal-day-cell other-month';
-            cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${pDay}</span></div>`;
-            grid.appendChild(cell);
-        }
-    }
-
-    let renderedCount = leadingPadding;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(year, month - 1, d).getDay();
-
-        // 주말(토, 일) 삭제
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
-        renderedCount++;
-
+    renderWeekdayCalendar(document.getElementById('calendarGridBody'), month, (cell, { dateStr, dayNum }) => {
         const goldenCount = countStudentGoldenSlotsOnDate(presenter, dateStr);
         const isConfirmed = presenter.confirmedSchedule && presenter.confirmedSchedule.date === dateStr;
 
-        const cell = document.createElement('div');
-        let classes = 'cal-day-cell';
-        if (isConfirmed) classes += ' confirmed-day';
-        cell.className = classes;
+        cell.className = `cal-day-cell ${isConfirmed ? 'confirmed-day' : ''}`;
 
         let badgeHtml = '';
-        if (isConfirmed) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
-        } else if (goldenCount > 0) {
-            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
-        }
-
         let chipsHtml = '';
         if (isConfirmed) {
             const end = getEndTime30Min(presenter.confirmedSchedule.time);
-            chipsHtml += `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${presenter.confirmedSchedule.time}~${end} 확정</div>`;
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
+            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${presenter.confirmedSchedule.time}~${end} 확정</div>`;
         } else if (goldenCount > 0) {
-            TIME_SLOTS.forEach(time => {
-                if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch && chipsHtml === '') {
-                    const end = getEndTime30Min(time);
-                    chipsHtml += `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${time}~${end} 가능</div>`;
-                }
-            });
+            // 가장 이른 전원 가능 시간 하나만 표시
+            const firstTime = TIME_SLOTS.find(time => analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch);
+            badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
+            chipsHtml = `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${firstTime}~${getEndTime30Min(firstTime)} 가능</div>`;
         }
 
         cell.innerHTML = `
             <div class="cal-day-header">
-                <span class="cal-day-num">${d}</span>
+                <span class="cal-day-num">${dayNum}</span>
                 ${badgeHtml}
             </div>
             <div class="cal-day-content">${chipsHtml}</div>
@@ -1377,47 +1327,35 @@ function renderMonthlyCalendar() {
             appState.currentDayDate = dateStr;
             switchSubView('day');
         });
-
-        grid.appendChild(cell);
-    }
-
-    // 5열 패딩 완료
-    const trailingPadding = (5 - (renderedCount % 5)) % 5;
-    for (let t = 1; t <= trailingPadding; t++) {
-        const cell = document.createElement('div');
-        cell.className = 'cal-day-cell other-month';
-        cell.innerHTML = `<div class="cal-day-header"><span class="cal-day-num">${t}</span></div>`;
-        grid.appendChild(cell);
-    }
+    });
 }
 
+// 11~12월이 포함된 주(월~금) 목록
 function getAllWeeks() {
     const weeks = [];
-    let curDate = new Date(2026, 10, 1);
-    const endDate = new Date(2026, 11, 31);
+    const curDate = new Date(SCHEDULE_YEAR, SCHEDULE_MONTHS[0] - 1, 1);
+    const endDate = new Date(SCHEDULE_YEAR, SCHEDULE_MONTHS[SCHEDULE_MONTHS.length - 1], 0);
 
     const day = curDate.getDay();
-    const diffToMon = (day === 0 ? -6 : 1) - day;
-    curDate.setDate(curDate.getDate() + diffToMon);
+    curDate.setDate(curDate.getDate() + (day === 0 ? -6 : 1) - day);
 
     while (curDate <= endDate) {
         const weekDays = [];
-        for (let i = 0; i < 7; i++) {
+        for (let i = 0; i < 5; i++) {
             const d = new Date(curDate);
+            d.setDate(d.getDate() + i);
             weekDays.push({
-                dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
-                dayName: ["일", "월", "화", "수", "목", "금", "토"][d.getDay()],
+                dateStr: toDateStr(d.getFullYear(), d.getMonth() + 1, d.getDate()),
+                dayName: DAY_NAMES[d.getDay()],
                 dayNum: d.getDate(),
-                month: d.getMonth() + 1,
-                isWeekend: d.getDay() === 0 || d.getDay() === 6
+                month: d.getMonth() + 1
             });
-            curDate.setDate(curDate.getDate() + 1);
         }
+        curDate.setDate(curDate.getDate() + 7);
 
-        const hasTargetMonth = weekDays.some(w => (w.month === 11 || w.month === 12));
-        if (hasTargetMonth) {
+        if (weekDays.some(w => SCHEDULE_MONTHS.includes(w.month))) {
             const first = weekDays[0];
-            const last = weekDays[6];
+            const last = weekDays[4];
             const label = `${first.month}/${first.dayNum} ~ ${last.month}/${last.dayNum} (${first.month === 11 ? '11월' : '12월'})`;
             weeks.push({ label, days: weekDays });
         }
@@ -1430,7 +1368,6 @@ function renderWeeklyTimetable() {
     const weeks = getAllWeeks();
     const weekSelect = document.getElementById('weekSelect');
     const matrixContainer = document.getElementById('weeklyMatrix');
-    const hideWeekend = document.getElementById('chkOnlyWeekdays').checked;
 
     weekSelect.innerHTML = '';
     weeks.forEach((w, idx) => {
@@ -1441,8 +1378,7 @@ function renderWeeklyTimetable() {
         weekSelect.appendChild(opt);
     });
 
-    const currentWeek = weeks[appState.currentWeekIndex] || weeks[0];
-    const displayDays = hideWeekend ? currentWeek.days.filter(d => !d.isWeekend) : currentWeek.days;
+    const displayDays = (weeks[appState.currentWeekIndex] || weeks[0]).days;
 
     let tableHtml = `<table class="weekly-table"><thead><tr><th style="width: 100px;">시간 (30분)</th>`;
 
@@ -1502,9 +1438,7 @@ function renderWeeklyTimetable() {
             const dt = cell.getAttribute('data-datetime');
             const isConf = cell.getAttribute('data-confirmed') === 'true';
             if (isConf) {
-                if (confirm(`${presenter.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) {
-                    cancelStudentConfirmation(presenter.id);
-                }
+                cancelConfirmationWithPrompt(presenter);
             } else if (dt) {
                 const [date] = dt.split(' ');
                 appState.currentDayDate = date;
@@ -1517,9 +1451,7 @@ function renderWeeklyTimetable() {
 function renderDailyDetail() {
     const presenter = getCurrentPresenter();
     const dateStr = appState.currentDayDate;
-    const [y, m, d] = dateStr.split('-');
-    const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-    const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+    const { y, m, d, dayName } = formatDateWithDay(dateStr);
 
     document.getElementById('currentDayTitle').textContent = `${y}년 ${m}월 ${d}일 (${dayName}요일)`;
     document.getElementById('directDatePicker').value = dateStr;
@@ -1530,11 +1462,10 @@ function renderDailyDetail() {
     let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 110px;" class="center">30분 슬롯</th>`;
 
     reviewers.forEach(r => {
-        const typeBadge = r.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : '<span class="badge-tag-internal-xs">내부</span>';
         tableHtml += `
             <th>
                 <div class="daily-person-header">
-                    <span>${typeBadge} ${r.name}</span>
+                    <span>${profTypeBadgeHtml(r.type)} ${r.name}</span>
                     <span class="p-role">${r.role}</span>
                 </div>
             </th>
@@ -1642,10 +1573,7 @@ function renderDailyDetail() {
     // Direct Cancel button in Daily Table
     matrixContainer.querySelectorAll('.btn-direct-cancel-final').forEach(btn => {
         btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            if (confirm(`${presenter.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) {
-                cancelStudentConfirmation(id);
-            }
+            cancelConfirmationWithPrompt(presenter);
         });
     });
 }
@@ -1655,23 +1583,8 @@ function renderRecommendations() {
     const container = document.getElementById('recommendationsList');
     container.innerHTML = '';
 
-    const matchedSlots = [];
-
-    [11, 12].forEach(m => {
-        const daysInMonth = new Date(2026, m, 0).getDate();
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dayOfWeek = new Date(2026, m - 1, d).getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말(토, 일) 제외
-            const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            TIME_SLOTS.forEach(time => {
-                const dt = `${dateStr} ${time}`;
-                const analysis = analyzeSlotForStudent(presenter, dt);
-                if (analysis.isAllMatch) {
-                    matchedSlots.push({ dateStr, time, dateTimeStr: dt, analysis });
-                }
-            });
-        }
-    });
+    const matchedSlots = findAllMatchSlots(presenter);
+    const committeeSize = (presenter.reviewers || []).length;
 
     if (matchedSlots.length === 0) {
         container.innerHTML = `
@@ -1688,9 +1601,7 @@ function renderRecommendations() {
     }
 
     matchedSlots.forEach((slot, index) => {
-        const [y, m, d] = slot.dateStr.split('-');
-        const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+        const { y, m, d, dayName } = formatDateWithDay(slot.dateStr);
         const endTime = getEndTime30Min(slot.time);
         const isConfirmed = presenter.confirmedSchedule &&
                             presenter.confirmedSchedule.date === slot.dateStr &&
@@ -1706,7 +1617,7 @@ function renderRecommendations() {
                     ${isConfirmed ? '<span class="status-badge confirmed" style="margin-left:8px;">현재 확정된 일정</span>' : ''}
                 </div>
                 <div class="rec-meta">
-                    <span>✨ <strong>심사위원 전원(${slot.analysis.total}인) 참석 가능</strong></span>
+                    <span>✨ <strong>심사위원 전원(${committeeSize}인) 참석 가능</strong></span>
                     <span>배정 시간: 30분</span>
                     <span>장소: ${presenter.location || '세미나실'}</span>
                 </div>
@@ -1733,9 +1644,7 @@ function renderRecommendations() {
         btn.addEventListener('click', () => {
             const isConfirmed = btn.textContent.includes('확정 취소하기');
             if (isConfirmed) {
-                if (confirm(`${presenter.name}님의 심사 확정을 취소하시겠습니까?`)) {
-                    cancelStudentConfirmation(presenter.id);
-                }
+                cancelConfirmationWithPrompt(presenter);
             } else {
                 const d = btn.getAttribute('data-date');
                 const t = btn.getAttribute('data-time');
@@ -1772,19 +1681,7 @@ function renderInteractiveProfAvailTable() {
     document.getElementById('modalProfChipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
     document.getElementById('modalProfChipDec').className = `btn-chip ${month === 12 ? 'active' : ''}`;
 
-    const weekdays = [];
-    const daysInMonth = new Date(2026, month, 0).getDate();
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(2026, month - 1, d);
-        const dayOfWeek = dateObj.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-            weekdays.push({
-                dateStr: `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-                dayName: ["일", "월", "화", "수", "목", "금", "토"][dayOfWeek],
-                dayNum: d
-            });
-        }
-    }
+    const weekdays = getWeekdays(month);
 
     let tableHtml = `<table class="interactive-avail-table"><thead><tr><th style="min-width: 85px;">30분 슬롯</th>`;
 
@@ -1815,53 +1712,46 @@ function renderInteractiveProfAvailTable() {
     tableHtml += `</tbody></table>`;
     tableContainer.innerHTML = tableHtml;
 
+    // 클릭·탭·드래그 모두 mousedown/mouseenter에서 처리
+    // (click에서도 바꾸면 한 번 클릭에 두 번 바뀌어 원래대로 돌아감)
     let modeToSet = true;
+    const applyToCell = cell => {
+        cell.classList.toggle('selected', modeToSet);
+        toggleProfAvailability(profName, cell.getAttribute('data-datetime'));
+    };
 
     tableContainer.querySelectorAll('.avail-check-cell').forEach(cell => {
-        // Direct tap on mobile devices
-        cell.addEventListener('click', () => {
-            const dt = cell.getAttribute('data-datetime');
-            const currentSelected = cell.classList.contains('selected');
-            if (currentSelected) cell.classList.remove('selected');
-            else cell.classList.add('selected');
-            toggleProfAvailability(profName, dt);
-            renderProfCalendarHero();
-            renderPresentersSection();
-        });
-
-        // Desktop mouse drag
         cell.addEventListener('mousedown', (e) => {
             e.preventDefault();
             isProfAvailDragging = true;
-            const dt = cell.getAttribute('data-datetime');
-            const currentSelected = cell.classList.contains('selected');
-            modeToSet = !currentSelected;
-
-            if (modeToSet) cell.classList.add('selected');
-            else cell.classList.remove('selected');
-            toggleProfAvailability(profName, dt);
+            modeToSet = !cell.classList.contains('selected');
+            applyToCell(cell);
         });
 
         cell.addEventListener('mouseenter', () => {
-            if (isProfAvailDragging) {
-                const dt = cell.getAttribute('data-datetime');
-                const currentSelected = cell.classList.contains('selected');
-                if (currentSelected !== modeToSet) {
-                    if (modeToSet) cell.classList.add('selected');
-                    else cell.classList.remove('selected');
-                    toggleProfAvailability(profName, dt);
-                }
+            if (isProfAvailDragging && cell.classList.contains('selected') !== modeToSet) {
+                applyToCell(cell);
             }
         });
     });
+}
 
-    window.addEventListener('mouseup', () => {
-        if (isProfAvailDragging) {
-            isProfAvailDragging = false;
-            renderProfCalendarHero();
-            renderPresentersSection();
-        }
-    }, { once: false });
+// 선택한 교수님의 해당 월 평일 슬롯 중 times에 해당하는 시간을 모두 가능으로 설정
+function markProfMonthAvailable(times, message) {
+    const profName = appState.modalProfTargetName;
+    if (!appState.profAvailability[profName]) appState.profAvailability[profName] = [];
+    const slots = appState.profAvailability[profName];
+
+    getWeekdays(appState.modalProfInputMonth).forEach(w => {
+        times.forEach(time => {
+            const dt = `${w.dateStr} ${time}`;
+            if (!slots.includes(dt)) slots.push(dt);
+        });
+    });
+    saveState();
+    renderInteractiveProfAvailTable();
+    renderAll();
+    showToast(`${profName}: ${message}`);
 }
 
 // ==========================================================================
@@ -1896,10 +1786,12 @@ function renderCommitteeRows(category, existingReviewers = []) {
     const isPhdGrad = category === '박사졸업발표';
     const hint = document.getElementById('committeeRuleHint');
     const subtitle = document.getElementById('modalPresenterSubtitle');
+    const internalList = PROFESSORS.internal.map(getProfShortName).join(', ');
+    const externalList = PROFESSORS.external.map(getProfShortName).join(', ');
 
     if (isPhdGrad) {
         subtitle.textContent = "규정: 박사졸업발표는 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인) 구성입니다.";
-        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (외부 1~4 중 2인) 총 5인을 지정하세요.`;
+        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (${internalList}) + <span class="badge-tag-external">외부 2인</span> (${externalList} 중 2인) 총 5인을 지정하세요.`;
 
         const defaultRoles = [
             { role: "심사위원장", type: "internal" },
@@ -1917,7 +1809,7 @@ function renderCommitteeRows(category, existingReviewers = []) {
     } else {
         // 석사졸업발표·박사주제발표: 내부/외부 구분 없이 자유 구성 (내부 3인 규정 해제)
         subtitle.textContent = "석사졸업발표 및 박사주제발표는 내부·외부 심사위원을 자유롭게 구성할 수 있습니다.";
-        hint.innerHTML = `<span class="badge-tag-internal">내부</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) · <span class="badge-tag-external">외부</span> (외부 1~4) 구분 없이 자유롭게 지정하세요.`;
+        hint.innerHTML = `<span class="badge-tag-internal">내부</span> (${internalList}) · <span class="badge-tag-external">외부</span> (${externalList}) 구분 없이 자유롭게 지정하세요.`;
 
         const rows = existingReviewers.length > 0
             ? existingReviewers.map(r => ({ role: r.role, name: r.name }))
@@ -1936,8 +1828,8 @@ function addProfessorSelectRow(role = '심사위원', type = 'internal', selecte
     const toOptions = names => names
         .map(pName => `<option value="${pName}" ${selectedName === pName ? 'selected' : ''}>${pName}</option>`)
         .join('');
-    const internalNames = PROFESSORS.internal.map(p => p.name);
-    const externalNames = PROFESSORS.external.map(p => p.name);
+    const internalNames = PROFESSORS.internal;
+    const externalNames = PROFESSORS.external;
 
     let optionsHtml;
     if (type === 'any') {
@@ -2034,9 +1926,7 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
 
 function openConfirmModal(presenter, dateStr, timeStr) {
     const modal = document.getElementById('modalConfirmDefense');
-    const [y, m, d] = dateStr.split('-');
-    const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-    const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+    const { y, m, d, dayName } = formatDateWithDay(dateStr);
     const endTime = getEndTime30Min(timeStr);
 
     document.getElementById('confirmModalPresenter').textContent = `${presenter.name} (${presenter.category})`;
@@ -2056,23 +1946,14 @@ function openConfirmModal(presenter, dateStr, timeStr) {
 
     const btnSave = document.getElementById('btnSaveConfirmation');
     btnSave.onclick = () => {
-        presenter.confirmedSchedule = {
-            date: dateStr,
-            time: timeStr,
-            duration: 30,
-            location: document.getElementById('confirmModalLocation').value.trim() || '세미나실'
-        };
-        saveState();
+        confirmSchedule(presenter, dateStr, timeStr, document.getElementById('confirmModalLocation').value.trim() || '세미나실');
         closeModal('modalConfirmDefense');
         renderAll();
         showToast(`${presenter.name}님의 30분 발표 일정이 최종 확정되었습니다! 🎉`);
     };
 
     btnCancel.onclick = () => {
-        if (confirm(`${presenter.name}님의 확정된 심사 일정을 취소하시겠습니까?`)) {
-            cancelStudentConfirmation(presenter.id);
-            closeModal('modalConfirmDefense');
-        }
+        if (cancelConfirmationWithPrompt(presenter)) closeModal('modalConfirmDefense');
     };
 
     modal.classList.add('active');
@@ -2098,21 +1979,9 @@ function openNoticeModal() {
 ■ 장소: ${confirmed.location}
 `;
     } else {
-        const matched = [];
-        [11, 12].forEach(m => {
-            const daysInMonth = new Date(2026, m, 0).getDate();
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                TIME_SLOTS.forEach(time => {
-                    if (analyzeSlotForStudent(presenter, `${dateStr} ${time}`).isAllMatch) {
-                        const end = getEndTime30Min(time);
-                        matched.push(`${dateStr} ${time} ~ ${end}`);
-                    }
-                });
-            }
-        });
-
-        const topSlots = matched.slice(0, 3).map((s, idx) => `  ${idx + 1}. ${s}`).join('\n');
+        const topSlots = findAllMatchSlots(presenter).slice(0, 3)
+            .map((slot, idx) => `  ${idx + 1}. ${slot.dateStr} ${slot.time} ~ ${getEndTime30Min(slot.time)}`)
+            .join('\n');
 
         scheduleNotice = `
 [심사위원 전원 가능 30분 추천 일시 (조율중)]
@@ -2214,6 +2083,8 @@ function renderAll() {
 
 // Global Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    renderProfFilterChips();
+    renderProfTargetOptions();
     initDataSource();
 
     // Top Navigation
@@ -2230,16 +2101,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
-    });
-
-    // Professor Filter Chips (외부 1, 외부 2 포함)
-    document.querySelectorAll('#profFilterChips .prof-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            document.querySelectorAll('#profFilterChips .prof-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            appState.profFilterTarget = chip.getAttribute('data-prof');
-            renderProfCalendarHero();
-        });
     });
 
     // Month toggles in Sector 1
@@ -2267,14 +2128,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('btnPrevPeriod').addEventListener('click', () => {
-        appState.calendarMonth = appState.calendarMonth === 12 ? 11 : 12;
-        renderMonthlyCalendar();
-    });
-    document.getElementById('btnNextPeriod').addEventListener('click', () => {
+    // 일정 기간이 11·12월 두 달이라 이전/다음 모두 다른 달로 전환
+    const toggleCalendarMonth = () => {
         appState.calendarMonth = appState.calendarMonth === 11 ? 12 : 11;
         renderMonthlyCalendar();
-    });
+    };
+    document.getElementById('btnPrevPeriod').addEventListener('click', toggleCalendarMonth);
+    document.getElementById('btnNextPeriod').addEventListener('click', toggleCalendarMonth);
     document.getElementById('chipNov').addEventListener('click', () => {
         appState.calendarMonth = 11;
         renderMonthlyCalendar();
@@ -2288,31 +2148,22 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.currentWeekIndex = parseInt(e.target.value, 10);
         renderWeeklyTimetable();
     });
-    document.getElementById('chkOnlyWeekdays').addEventListener('change', renderWeeklyTimetable);
 
-    document.getElementById('btnPrevDay').addEventListener('click', () => {
-        const [y, m, d] = appState.currentDayDate.split('-');
-        const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d) - 1);
-        if (dateObj >= new Date(2026, 10, 1) && dateObj <= new Date(2026, 11, 31)) {
-            appState.currentDayDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    // 이전/다음 평일로 이동 (11~12월 범위 안에서)
+    const moveDailyDate = step => {
+        const dates = getAllScheduleDates();
+        const idx = dates.findIndex(dt => step > 0 ? dt > appState.currentDayDate : dt >= appState.currentDayDate);
+        const target = step > 0 ? dates[idx] : dates[(idx < 0 ? dates.length : idx) - 1];
+        if (target) {
+            appState.currentDayDate = target;
             renderDailyDetail();
         }
-    });
-    document.getElementById('btnNextDay').addEventListener('click', () => {
-        const [y, m, d] = appState.currentDayDate.split('-');
-        const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d) + 1);
-        if (dateObj >= new Date(2026, 10, 1) && dateObj <= new Date(2026, 11, 31)) {
-            appState.currentDayDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-            renderDailyDetail();
-        }
-    });
+    };
+    document.getElementById('btnPrevDay').addEventListener('click', () => moveDailyDate(-1));
+    document.getElementById('btnNextDay').addEventListener('click', () => moveDailyDate(1));
     document.getElementById('directDatePicker').addEventListener('change', (e) => {
         appState.currentDayDate = e.target.value;
         renderDailyDetail();
-    });
-
-    document.getElementById('btnConfirmSlot').addEventListener('click', () => {
-        openConfirmModal(getCurrentPresenter(), appState.currentDayDate, "14:00");
     });
 
     document.getElementById('btnCopyAnnouncement').addEventListener('click', openNoticeModal);
@@ -2344,58 +2195,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btnProfSelectAll').addEventListener('click', () => {
-        const profName = appState.modalProfTargetName;
-        const month = appState.modalProfInputMonth;
-        const daysInMonth = new Date(2026, month, 0).getDate();
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(2026, month - 1, d);
-            const dayOfWeek = dateObj.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                const dateStr = `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                TIME_SLOTS.forEach(time => {
-                    const dt = `${dateStr} ${time}`;
-                    if (!isProfAvailable(profName, dt)) {
-                        toggleProfAvailability(profName, dt);
-                    }
-                });
-            }
-        }
-        renderInteractiveProfAvailTable();
-        renderProfCalendarHero();
-        renderPresentersSection();
-        showToast(`${profName}: 해당 월 평일 전체 가능으로 설정되었습니다.`);
+        markProfMonthAvailable(TIME_SLOTS, '해당 월 평일 전체 가능으로 설정되었습니다.');
     });
-
     document.getElementById('btnProfSelectAfternoon').addEventListener('click', () => {
-        const profName = appState.modalProfTargetName;
-        const month = appState.modalProfInputMonth;
-        const daysInMonth = new Date(2026, month, 0).getDate();
-        const afternoonTimes = ["13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"];
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(2026, month - 1, d);
-            const dayOfWeek = dateObj.getDay();
-            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-                const dateStr = `2026-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                afternoonTimes.forEach(time => {
-                    const dt = `${dateStr} ${time}`;
-                    if (!isProfAvailable(profName, dt)) {
-                        toggleProfAvailability(profName, dt);
-                    }
-                });
-            }
-        }
-        renderInteractiveProfAvailTable();
-        renderProfCalendarHero();
-        renderPresentersSection();
-        showToast(`${profName}: 해당 월 평일 오후(13~18시) 가능으로 설정되었습니다.`);
+        markProfMonthAvailable(TIME_SLOTS.filter(t => t >= '13:00'), '해당 월 평일 오후(13~18시) 가능으로 설정되었습니다.');
     });
 
     document.getElementById('btnProfClear').addEventListener('click', () => {
         const profName = appState.modalProfTargetName;
-        const month = appState.modalProfInputMonth;
-        const monthPrefix = `2026-${String(month).padStart(2, '0')}`;
+        const monthPrefix = `${SCHEDULE_YEAR}-${String(appState.modalProfInputMonth).padStart(2, '0')}`;
 
         if (appState.profAvailability[profName]) {
             appState.profAvailability[profName] = appState.profAvailability[profName].filter(
@@ -2404,9 +2212,15 @@ document.addEventListener('DOMContentLoaded', () => {
             saveState();
         }
         renderInteractiveProfAvailTable();
-        renderProfCalendarHero();
-        renderPresentersSection();
+        renderAll();
         showToast(`${profName}: 해당 월의 선택이 초기화되었습니다.`);
+    });
+
+    // 교수님 일정표 드래그 종료
+    window.addEventListener('mouseup', () => {
+        if (!isProfAvailDragging) return;
+        isProfAvailDragging = false;
+        renderAll();
     });
 
     // Modal Close handlers

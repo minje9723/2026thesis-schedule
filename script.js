@@ -303,7 +303,7 @@ function loadState() {
         if (savedPresenters && savedProfAvail) {
             appState.presenters = JSON.parse(savedPresenters);
             appState.profAvailability = JSON.parse(savedProfAvail);
-            const defaults = getDefaultProfAvailability();
+            const defaults = generateDefaultProfAvailability();
             ALL_PROF_NAMES.forEach(pName => {
                 if (!appState.profAvailability[pName]) {
                     appState.profAvailability[pName] = defaults[pName] || [];

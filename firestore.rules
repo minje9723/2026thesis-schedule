@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Firebase 콘솔 > Firestore Database > 규칙 탭에 이 내용을 붙여넣고 [게시]하세요.
+// - 링크를 아는 누구나 읽고 수정할 수 있습니다(로그인 없음).
+// - 대신 이 앱이 쓰는 두 컬렉션과 정해진 데이터 형식만 허용하고, 삭제는 막습니다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidPresenter(d) {
+      return d.keys().hasOnly(['id', 'name', 'category', 'duration', 'thesisTitle', 'location', 'reviewers', 'confirmedSchedule'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 50
+        && d.category in ['박사졸업발표', '박사주제발표', '석사졸업발표']
+        && d.reviewers is list && d.reviewers.size() <= 12
+        && (!('thesisTitle' in d) || (d.thesisTitle is string && d.thesisTitle.size() <= 300))
+        && (!('location' in d) || (d.location is string && d.location.size() <= 100))
+        && (!('confirmedSchedule' in d) || d.confirmedSchedule == null || d.confirmedSchedule is map);
+    }
+
+    // 발표자 정보
+    match /presenters/{presenterId} {
+      allow read: if true;
+      allow create, update: if presenterId.matches('p_[A-Za-z0-9_]{1,40}')
+        && isValidPresenter(request.resource.data);
+      allow delete: if false;
+    }
+
+    // 교수님 심사 가능 일정 (문서 이름 = 교수님 이름)
+    match /profAvailability/{profName} {
+      allow read: if true;
+      allow create, update: if profName in [
+          '김수철 교수님', '이상옥 교수님', '권희홍 교수님', '한민수 교수님', '정용재 교수님',
+          '외부 1', '외부 2', '외부 3', '외부 4'
+        ]
+        && request.resource.data.keys().hasOnly(['slots'])
+        && request.resource.data.slots is list
+        && request.resource.data.slots.size() <= 1000;
+      allow delete: if false;
+    }
+  }
+}

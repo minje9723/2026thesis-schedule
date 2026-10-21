@@ -26,6 +26,7 @@
                 <div>
                     <h1 class="brand-title">2026 학위논문 발표 일정 조율</h1>
                     <p class="brand-subtitle">심사위원 교수님 가능 일정 취합 기반 30분 발표 일정 조율 시스템</p>
+                    <span id="syncStatus" class="sync-status"></span>
                 </div>
             </div>
 
@@ -602,6 +603,10 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- Firebase (Firestore 실시간 공유 저장) -->
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
 </body>
 

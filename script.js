@@ -325,6 +325,14 @@ function loadState() {
 }
 
 function saveState() {
+    if (firestoreDb) {
+        // 한 동작 안의 여러 변경(드래그, 전체 선택 등)을 모아 한 번에 전송
+        if (!flushScheduled) {
+            flushScheduled = true;
+            queueMicrotask(flushToFirestore);
+        }
+        return;
+    }
     localStorage.setItem(STORAGE_KEY_PRESENTERS, JSON.stringify(appState.presenters));
     localStorage.setItem(STORAGE_KEY_PROF_AVAIL, JSON.stringify(appState.profAvailability));
 }
@@ -334,6 +342,243 @@ function resetToSampleData() {
     appState.profAvailability = generateDefaultProfAvailability();
     appState.currentPresenterId = "p_phd_1";
     saveState();
+}
+
+// ==========================================================================
+// 1-2. Firestore 실시간 공유 저장 (firebase-config.js 설정 시 사용)
+// - presenters/{발표자 id}: 발표자 정보 전체
+// - profAvailability/{교수님 이름}: { slots: ["2026-11-27 14:00", ...] }
+// ==========================================================================
+
+const FS_COL_PRESENTERS = 'presenters';
+const FS_COL_PROF_AVAIL = 'profAvailability';
+
+let firestoreDb = null;
+let firestoreUnsubscribes = [];
+let flushScheduled = false;
+let initialSyncDone = false;
+let remoteRenderScheduled = false;
+let isProfAvailDragging = false;
+// 마지막으로 서버와 일치한 상태 (변경분만 골라 전송하기 위한 기준)
+const syncedPresenters = {};   // id -> JSON 문자열
+const syncedProfSlots = {};    // 교수님 이름 -> Set
+
+function setSyncStatus(state, text) {
+    const el = document.getElementById('syncStatus');
+    if (!el) return;
+    el.className = `sync-status sync-${state}`;
+    el.textContent = text;
+}
+
+function handleSyncError(err) {
+    console.error('Firestore 오류:', err);
+    setSyncStatus('error', '공유 저장 오류 · 새로고침 후 다시 시도하세요');
+    showToast(`공유 저장에 실패했습니다. (${err.code || err.message})`);
+}
+
+function flushToFirestore() {
+    flushScheduled = false;
+    if (!firestoreDb) return;
+    const FieldValue = firebase.firestore.FieldValue;
+
+    // 발표자는 바뀐 항목만 전송 (예: 한 사람의 일정 확정과 다른 사람의 심사위원 수정이 서로 지워지지 않도록)
+    appState.presenters.forEach(p => {
+        const json = JSON.stringify(p);
+        if (syncedPresenters[p.id] === json) return;
+        const prev = syncedPresenters[p.id] ? JSON.parse(syncedPresenters[p.id]) : null;
+        const data = JSON.parse(json);
+        syncedPresenters[p.id] = json;
+
+        const ref = firestoreDb.collection(FS_COL_PRESENTERS).doc(p.id);
+        if (!prev) {
+            ref.set(data).catch(handleSyncError);
+            return;
+        }
+        const changedFields = Object.keys(data).filter(k => JSON.stringify(data[k]) !== JSON.stringify(prev[k]));
+        if (changedFields.length) ref.set(data, { mergeFields: changedFields }).catch(handleSyncError);
+    });
+
+    // 교수님 일정은 슬롯 단위로 추가/삭제하여 여러 명이 동시에 고쳐도 서로 덮어쓰지 않음
+    Object.keys(appState.profAvailability).forEach(pName => {
+        const current = appState.profAvailability[pName] || [];
+        const currentSet = new Set(current);
+        const synced = syncedProfSlots[pName] || new Set();
+        const added = current.filter(dt => !synced.has(dt));
+        const removed = [...synced].filter(dt => !currentSet.has(dt));
+        if (added.length === 0 && removed.length === 0) return;
+
+        syncedProfSlots[pName] = currentSet;
+        const ref = firestoreDb.collection(FS_COL_PROF_AVAIL).doc(pName);
+        if (added.length) ref.set({ slots: FieldValue.arrayUnion(...added) }, { merge: true }).catch(handleSyncError);
+        if (removed.length) ref.set({ slots: FieldValue.arrayRemove(...removed) }, { merge: true }).catch(handleSyncError);
+    });
+}
+
+function seedFirestore(collectionName) {
+    const batch = firestoreDb.batch();
+    if (collectionName === FS_COL_PRESENTERS) {
+        DEFAULT_PRESENTERS.forEach(p => {
+            batch.set(firestoreDb.collection(FS_COL_PRESENTERS).doc(p.id), JSON.parse(JSON.stringify(p)));
+        });
+    } else {
+        const defaults = generateDefaultProfAvailability();
+        ALL_PROF_NAMES.forEach(pName => {
+            batch.set(firestoreDb.collection(FS_COL_PROF_AVAIL).doc(pName), { slots: defaults[pName] || [] });
+        });
+    }
+    batch.commit().catch(handleSyncError);
+}
+
+function presenterDefaultOrder(id) {
+    const idx = DEFAULT_PRESENTERS.findIndex(d => d.id === id);
+    return idx < 0 ? Infinity : idx;
+}
+
+// 기존 객체를 그대로 두고 내용만 교체 (열려 있는 모달이 들고 있는 참조가 끊기지 않도록)
+function applyPresentersSnapshot(snapshot) {
+    const serverIds = new Set();
+    snapshot.docs.forEach(doc => {
+        serverIds.add(doc.id);
+        const data = doc.data();
+        let p = appState.presenters.find(x => x.id === doc.id);
+        if (p) {
+            Object.keys(p).forEach(k => delete p[k]);
+            Object.assign(p, data, { id: doc.id });
+        } else {
+            p = Object.assign({}, data, { id: doc.id });
+            appState.presenters.push(p);
+        }
+        syncedPresenters[doc.id] = JSON.stringify(p);
+    });
+
+    appState.presenters = appState.presenters.filter(p => serverIds.has(p.id));
+    appState.presenters.sort((a, b) => (presenterDefaultOrder(a.id) - presenterDefaultOrder(b.id)) || a.id.localeCompare(b.id));
+    if (appState.presenters.length > 0 && !appState.presenters.some(p => p.id === appState.currentPresenterId)) {
+        appState.currentPresenterId = appState.presenters[0].id;
+    }
+}
+
+function applyProfAvailSnapshot(snapshot) {
+    const next = {};
+    ALL_PROF_NAMES.forEach(pName => { next[pName] = []; });
+    snapshot.docs.forEach(doc => {
+        next[doc.id] = (doc.data().slots || []).slice();
+    });
+    appState.profAvailability = next;
+    Object.keys(syncedProfSlots).forEach(k => delete syncedProfSlots[k]);
+    Object.keys(next).forEach(pName => { syncedProfSlots[pName] = new Set(next[pName]); });
+}
+
+// 다른 사람의 변경이 도착하면 화면 갱신 (드래그 입력 중에는 끝난 뒤로 미룸)
+function renderAfterRemoteChange() {
+    if (remoteRenderScheduled) return;
+    remoteRenderScheduled = true;
+    setTimeout(() => {
+        remoteRenderScheduled = false;
+        if (isProfAvailDragging) {
+            renderAfterRemoteChange();
+            return;
+        }
+        renderAll();
+        if (document.getElementById('modalProfAvail').classList.contains('active')) {
+            renderInteractiveProfAvailTable();
+        }
+    }, 300);
+}
+
+function useLocalStorageOnly(statusState, statusText) {
+    firestoreUnsubscribes.forEach(unsubscribe => unsubscribe());
+    firestoreUnsubscribes = [];
+    firestoreDb = null;
+    loadState();
+    renderAll();
+    setSyncStatus(statusState, statusText);
+}
+
+function initDataSource() {
+    const config = window.FIREBASE_CONFIG;
+    if (!config) {
+        useLocalStorageOnly('local', '공유 미설정 · 이 브라우저에만 저장');
+        return;
+    }
+
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(config);
+        firestoreDb = firebase.firestore();
+    } catch (e) {
+        console.error('Firebase 초기화 실패:', e);
+        useLocalStorageOnly('error', '공유 연결 실패 · 이 브라우저에만 저장');
+        return;
+    }
+
+    setSyncStatus('connecting', '공유 저장소 연결 중…');
+    appState.presenters = [];
+    appState.profAvailability = {};
+    const loaded = { presenters: false, prof: false };
+    const offline = { presenters: false, prof: false };
+
+    const updateConnectionStatus = () => {
+        if (offline.presenters || offline.prof) {
+            setSyncStatus('connecting', '오프라인 · 연결되면 자동으로 저장됩니다');
+        } else {
+            setSyncStatus('live', '실시간 공유 중');
+        }
+    };
+
+    const listen = (collectionName, key, applyFn) => {
+        const unsubscribe = firestoreDb.collection(collectionName).onSnapshot({ includeMetadataChanges: true }, snapshot => {
+            if (!firestoreDb) return;
+            offline[key] = snapshot.metadata.fromCache;
+
+            if (!loaded[key]) {
+                // 서버 응답 전의 빈 캐시로 화면을 그리지 않음
+                if (snapshot.metadata.fromCache) {
+                    setSyncStatus('connecting', '서버 응답을 기다리는 중…');
+                    return;
+                }
+                // 최초 사용 시 기본 데이터로 채움
+                if (snapshot.empty) {
+                    seedFirestore(collectionName);
+                    return;
+                }
+            }
+            applyFn(snapshot);
+            loaded[key] = true;
+
+            if (!initialSyncDone) {
+                if (loaded.presenters && loaded.prof) {
+                    initialSyncDone = true;
+                    renderAll();
+                    updateConnectionStatus();
+                }
+                return;
+            }
+            updateConnectionStatus();
+            const hasRemoteChange = snapshot.docChanges().some(c => !c.doc.metadata.hasPendingWrites);
+            if (hasRemoteChange) renderAfterRemoteChange();
+        }, err => {
+            if (!firestoreDb) return;
+            if (!initialSyncDone) {
+                console.error('Firestore 연결 실패:', err);
+                useLocalStorageOnly('error', '공유 연결 실패 · 이 브라우저에만 저장');
+                showToast(`공유 저장소에 연결하지 못했습니다. (${err.code || err.message})`);
+            } else {
+                handleSyncError(err);
+            }
+        });
+        firestoreUnsubscribes.push(unsubscribe);
+    };
+
+    listen(FS_COL_PRESENTERS, 'presenters', applyPresentersSnapshot);
+    listen(FS_COL_PROF_AVAIL, 'prof', applyProfAvailSnapshot);
+
+    // 잘못된 프로젝트 설정이나 데이터베이스 미생성 시 SDK는 오류 없이 재시도만 반복하므로 안내
+    setTimeout(() => {
+        if (firestoreDb && !initialSyncDone) {
+            setSyncStatus('error', '공유 저장소에 연결할 수 없습니다 · 설정을 확인하세요');
+            showToast('공유 저장소에 연결할 수 없습니다. Firebase 설정과 네트워크를 확인하세요.');
+        }
+    }, 15000);
 }
 
 // ==========================================================================
@@ -1570,7 +1815,6 @@ function renderInteractiveProfAvailTable() {
     tableHtml += `</tbody></table>`;
     tableContainer.innerHTML = tableHtml;
 
-    let isMouseDown = false;
     let modeToSet = true;
 
     tableContainer.querySelectorAll('.avail-check-cell').forEach(cell => {
@@ -1588,7 +1832,7 @@ function renderInteractiveProfAvailTable() {
         // Desktop mouse drag
         cell.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            isMouseDown = true;
+            isProfAvailDragging = true;
             const dt = cell.getAttribute('data-datetime');
             const currentSelected = cell.classList.contains('selected');
             modeToSet = !currentSelected;
@@ -1599,7 +1843,7 @@ function renderInteractiveProfAvailTable() {
         });
 
         cell.addEventListener('mouseenter', () => {
-            if (isMouseDown) {
+            if (isProfAvailDragging) {
                 const dt = cell.getAttribute('data-datetime');
                 const currentSelected = cell.classList.contains('selected');
                 if (currentSelected !== modeToSet) {
@@ -1612,8 +1856,8 @@ function renderInteractiveProfAvailTable() {
     });
 
     window.addEventListener('mouseup', () => {
-        if (isMouseDown) {
-            isMouseDown = false;
+        if (isProfAvailDragging) {
+            isProfAvailDragging = false;
             renderProfCalendarHero();
             renderPresentersSection();
         }
@@ -1970,8 +2214,7 @@ function renderAll() {
 
 // Global Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    loadState();
-    renderAll();
+    initDataSource();
 
     // Top Navigation
     document.getElementById('brandHomeBtn').addEventListener('click', navigateToHome);

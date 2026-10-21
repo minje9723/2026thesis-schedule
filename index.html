@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.5">
+    <link rel="stylesheet" href="style.css?v=20261022.6">
 </head>
 
 <body>
@@ -59,15 +59,9 @@
 
             <!-- SECTOR 1: PROFESSORS DEFENSE AVAILABILITY CALENDAR -->
             <section class="prof-calendar-hero-sector">
-                <div class="sector-header-row">
-                    <div>
-                        <h2 class="sector-main-title">2026년 11월~12월 교수님들 심사 가능 캘린더</h2>
-                    </div>
-                </div>
-
                 <!-- 교수님별 칩 (script.js의 PROFESSORS로 생성): 이름을 누르면 그 교수님의 가능 날짜 선택 -->
+                <h3 class="prof-filter-title">교수님별 가능 날짜 선택</h3>
                 <div class="prof-filter-toolbar">
-                    <div class="prof-filter-label">교수님별 가능 날짜 선택:</div>
                     <div class="prof-filter-chips" id="profFilterChips"></div>
                 </div>
                 <div class="prof-pick-banner" id="profPickBanner" hidden>
@@ -516,14 +510,25 @@
         </div>
     </div>
 
+    <!-- 일정 확정 축하 팝업 (확정한 사람 화면에만, 색종이는 script.js에서 생성) -->
+    <div class="celebrate-overlay" id="celebrateOverlay" hidden>
+        <div class="celebrate-card" role="alertdialog" aria-labelledby="celebrateTitle" aria-describedby="celebrateDetail">
+            <div class="celebrate-emoji" aria-hidden="true">🎉</div>
+            <h3 id="celebrateTitle">축하합니다!</h3>
+            <p class="celebrate-message">예약에 성공하셨습니다</p>
+            <p class="celebrate-detail" id="celebrateDetail"></p>
+            <button type="button" class="btn btn-primary" id="btnCelebrateClose">확인</button>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.5"></script>
-    <script src="script.js?v=20261022.5"></script>
+    <script src="firebase-config.js?v=20261022.6"></script>
+    <script src="script.js?v=20261022.6"></script>
 </body>
 
 </html>

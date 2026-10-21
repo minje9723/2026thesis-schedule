@@ -843,8 +843,47 @@ function confirmPresenterSchedule(presenter, dateStr, period, time, location) {
     presenter.confirmedSchedule = { date: dateStr, period, time, duration: 30, location };
     saveState();
     renderAll();
-    showToast(`${presenter.name}님의 발표가 ${dateStr} ${p.label} ${time}으로 확정되었습니다! 🎉`);
+    const { m, d, dayName } = formatDateWithDay(dateStr);
+    showCelebration(`${presenter.name} · ${Number(m)}월 ${Number(d)}일 (${dayName}) ${p.label} ${time}~${getEndTime30Min(time)}`);
     return true;
+}
+
+// 일정 확정 축하 팝업 + 색종이 애니메이션 (확정한 사람 화면에만 표시)
+let celebrateTimer = null;
+function showCelebration(detailText) {
+    const overlay = document.getElementById('celebrateOverlay');
+    document.getElementById('celebrateDetail').textContent = detailText;
+    overlay.querySelectorAll('.confetti-piece').forEach(el => el.remove());
+
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const colors = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+        for (let i = 0; i < 90; i++) {
+            const piece = document.createElement('span');
+            piece.className = 'confetti-piece';
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.background = colors[i % colors.length];
+            piece.style.animationDelay = `${Math.random() * 0.7}s`;
+            piece.style.animationDuration = `${2.2 + Math.random() * 1.6}s`;
+            piece.style.setProperty('--drift', `${Math.round((Math.random() - 0.5) * 240)}px`);
+            piece.style.setProperty('--spin', `${Math.round(360 + Math.random() * 720)}deg`);
+            overlay.appendChild(piece);
+        }
+    }
+
+    overlay.hidden = false;
+    const card = overlay.querySelector('.celebrate-card');
+    card.classList.remove('is-popping');
+    void card.offsetWidth;   // 연속으로 확정해도 튀어나오는 애니메이션이 다시 재생되도록
+    card.classList.add('is-popping');
+    clearTimeout(celebrateTimer);
+    celebrateTimer = setTimeout(hideCelebration, 5000);
+}
+
+function hideCelebration() {
+    clearTimeout(celebrateTimer);
+    const overlay = document.getElementById('celebrateOverlay');
+    overlay.hidden = true;
+    overlay.querySelectorAll('.confetti-piece').forEach(el => el.remove());
 }
 
 // 확인 창을 띄운 뒤 확정 취소. 취소했으면 true
@@ -927,7 +966,7 @@ function renderProfCalendarHero() {
 
             contentHtml = confirmedHere.map(item => `
                 <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:0.7rem; font-weight:700; margin-bottom:4px;">
-                    ⭐ ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+                    ${item.name} <span style="font-size:0.62rem; opacity:0.85;">(${item.confirmedSchedule.time})</span>
                 </div>
             `).join('');
 
@@ -1004,7 +1043,7 @@ function renderProfFilterChips() {
         `<button class="prof-chip ${appState.profFilterTarget === value ? 'active' : ''}" data-prof="${value}">${label}</button>`;
     const group = names => names.map(n => chip(n, getProfShortName(n))).join('');
 
-    container.innerHTML = chip('all', `전체 교수님 종합 (${ALL_PROF_NAMES.length}인)`)
+    container.innerHTML = chip('all', '전체')
         + `<span class="filter-divider">|</span>` + group(PROFESSORS.internal)
         + `<span class="filter-divider">|</span>` + group(PROFESSORS.external);
 
@@ -1098,7 +1137,7 @@ function buildDateDetailRow(dateStr, period, draft) {
 
     const confirmedList = confirmedHere.map(p => `
         <div class="slot-confirmed-item">
-            <span class="status-badge confirmed">⭐ ${p.confirmedSchedule.time} ${p.name}</span>
+            <span class="status-badge confirmed">${p.confirmedSchedule.time} ${p.name}</span>
             <button type="button" class="btn btn-sm btn-danger btn-modal-cancel-slot" data-id="${p.id}">취소</button>
         </div>
     `).join('');
@@ -1213,7 +1252,7 @@ function renderRosterGrid(containerId, list) {
         if (isConfirmed) {
             const cs = p.confirmedSchedule;
             statusBadgeHtml = `
-                <span class="status-badge confirmed">⭐ ${cs.date.slice(5)} ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</span>
+                <span class="status-badge confirmed">${cs.date.slice(5)} ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</span>
                 <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다">취소</button>
             `;
         } else if (reviewers.length === 0) {
@@ -1404,8 +1443,8 @@ function renderMonthlyCalendar() {
         let badgeHtml = '';
         let chipsHtml = '';
         if (isConfirmed) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">⭐ 확정</span>`;
-            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">⭐ ${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</div>`;
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">확정</span>`;
+            chipsHtml = `<div class="cal-slot-chip confirmed-chip" style="font-size:0.7rem; padding:2px 4px;">${getPeriod(schedulePeriod(cs)).label} ${cs.time} 확정</div>`;
         } else if (matchPeriods.length > 0) {
             badgeHtml = `<span class="cal-day-badge badge-golden">전원가능</span>`;
             chipsHtml = `<div class="cal-slot-chip golden" style="font-size:0.7rem; padding:2px 4px;">✓ ${matchPeriods.map(k => getPeriod(k).label).join('·')} 가능</div>`;
@@ -1500,7 +1539,7 @@ function renderWeeklyTimetable() {
             let cellContent = '';
             if (isConfirmed) {
                 cellClass += ' slot-confirmed';
-                cellContent = `<span class="slot-inner-badge" style="cursor:pointer;" title="클릭하여 확정 취소">⭐ ${cs.time} 확정 (취소)</span>`;
+                cellContent = `<span class="slot-inner-badge" style="cursor:pointer;" title="클릭하여 확정 취소">${cs.time} 확정 (취소)</span>`;
             } else if (analysis.isAllMatch) {
                 cellClass += ' slot-all';
                 cellContent = `<span class="slot-inner-badge">✓ 전원 가능</span>`;
@@ -1598,7 +1637,7 @@ function renderDailyDetail() {
 
         let actionBtn = '';
         if (isConfirmed) {
-            actionBtn = `<button class="btn btn-sm btn-danger btn-direct-cancel-final" title="클릭하여 확정을 취소합니다">⭐ ${cs.time} 확정 취소</button>`;
+            actionBtn = `<button class="btn btn-sm btn-danger btn-direct-cancel-final" title="클릭하여 확정을 취소합니다">${cs.time} 확정 취소</button>`;
         } else if (analysis.isAllMatch) {
             actionBtn = `<button class="btn btn-sm btn-success btn-select-final" data-period="${period.key}">이 시간대로 확정</button>`;
         } else {
@@ -2105,6 +2144,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
+    });
+
+    // 축하 팝업: 확인 버튼·바깥 클릭·Esc로 닫기
+    document.getElementById('celebrateOverlay').addEventListener('click', hideCelebration);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('celebrateOverlay').hidden) hideCelebration();
     });
 
     // 발표 시간 입력칸: 칸을 벗어나면 입력한 숫자를 "14:00" 형식으로 정리해 보여 줌

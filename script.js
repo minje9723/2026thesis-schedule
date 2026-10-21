@@ -16,15 +16,15 @@ const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v6';
 
 const PROFESSORS = {
     internal: [
-        { name: "김수철 교수님", type: "internal", classDot: "dot-prof1" },
-        { name: "이상옥 교수님", type: "internal", classDot: "dot-prof2" },
-        { name: "권희홍 교수님", type: "internal", classDot: "dot-prof3" },
-        { name: "한민수 교수님", type: "internal", classDot: "dot-prof4" },
-        { name: "정용재 교수님", type: "internal", classDot: "dot-prof5" }
+        { name: "김수철 교수님", type: "internal" },
+        { name: "이상옥 교수님", type: "internal" },
+        { name: "권희홍 교수님", type: "internal" },
+        { name: "한민수 교수님", type: "internal" },
+        { name: "정용재 교수님", type: "internal" }
     ],
     external: [
-        { name: "외부 1", type: "external", classDot: "dot-prof6" },
-        { name: "외부 2", type: "external", classDot: "dot-prof7" }
+        { name: "외부 1", type: "external" },
+        { name: "외부 2", type: "external" }
     ]
 };
 
@@ -832,6 +832,8 @@ function renderRosterGrid(containerId, list) {
         [11, 12].forEach(m => {
             const daysInMonth = new Date(2026, m, 0).getDate();
             for (let d = 1; d <= daysInMonth; d++) {
+                const dayOfWeek = new Date(2026, m - 1, d).getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 평일(월~금)만 계산
                 const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 totalGoldenSlots += countStudentGoldenSlotsOnDate(p, dateStr);
             }
@@ -1205,13 +1207,7 @@ function renderWeeklyTimetable() {
                 cellContent = `<span class="slot-inner-badge" style="cursor:pointer;" title="클릭하여 확정 취소">⭐ 확정됨 (취소)</span>`;
             } else if (analysis.isAllMatch) {
                 cellClass += ' slot-all';
-                cellContent = `<span class="slot-inner-badge">✓ 전원 가능 (${analysis.total}/${analysis.total})</span>`;
-            } else if (analysis.ratio >= 0.6) {
-                cellClass += ' slot-most';
-                cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
-            } else if (analysis.availableCount > 0) {
-                cellClass += ' slot-partial';
-                cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
+                cellContent = `<span class="slot-inner-badge">✓ 전원 가능</span>`;
             } else {
                 cellClass += ' slot-none';
                 cellContent = `<span style="font-size:0.7rem; color:#cbd5e1;">-</span>`;
@@ -1316,7 +1312,7 @@ function renderDailyDetail() {
         if (analysis.isAllMatch) {
             summaryPill = `<span class="daily-summary-pill all-match">🏆 전원 가능 (${analysis.total}/${analysis.total})</span>`;
         } else if (analysis.availableCount > 0) {
-            summaryPill = `<span class="daily-summary-pill partial-match">${analysis.availableCount} / ${analysis.total}명 가능</span>`;
+            summaryPill = `<span class="daily-summary-pill partial-match" style="background:#f1f5f9; color:#64748b; border-color:#cbd5e1;">${analysis.availableCount} / ${analysis.total}명 가능</span>`;
         } else {
             summaryPill = `<span style="font-size:0.75rem; color:#94a3b8;">가능자 없음</span>`;
         }
@@ -1329,13 +1325,17 @@ function renderDailyDetail() {
                     ⭐ 확정 취소
                 </button>
             `;
-        } else {
+        } else if (analysis.isAllMatch) {
             actionBtn = `
-                <button class="btn btn-sm ${analysis.isAllMatch ? 'btn-success' : 'btn-outline'} btn-select-final"
+                <button class="btn btn-sm btn-success btn-select-final"
                         data-date="${dateStr}" 
                         data-time="${time}">
-                    ${analysis.isAllMatch ? '이 시간 확정' : '선택 확정'}
+                    이 시간 확정
                 </button>
+            `;
+        } else {
+            actionBtn = `
+                <span style="font-size:0.75rem; color:#94a3b8; font-weight:500;">불가 (${analysis.unavailableNames.length}인 불참)</span>
             `;
         }
 
@@ -1391,6 +1391,8 @@ function renderRecommendations() {
     [11, 12].forEach(m => {
         const daysInMonth = new Date(2026, m, 0).getDate();
         for (let d = 1; d <= daysInMonth; d++) {
+            const dayOfWeek = new Date(2026, m - 1, d).getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말(토, 일) 제외
             const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
             TIME_SLOTS.forEach(time => {
                 const dt = `${dateStr} ${time}`;

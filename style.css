@@ -428,8 +428,8 @@ a {
 .prof-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    justify-content: center;
+    padding: 6px 14px;
     font-size: 0.8rem;
     font-weight: 600;
     border-radius: var(--radius-full);
@@ -438,50 +438,26 @@ a {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.15s ease;
+    white-space: nowrap;
 }
 
 .prof-chip:hover {
     background: var(--surface-subtle);
     color: var(--text-primary);
+    border-color: #94a3b8;
 }
 
 .prof-chip.active {
     background: #1e293b;
     color: #ffffff;
     border-color: #1e293b;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-}
-
-.prof-chip.external-chip {
-    border-color: #fde68a;
-    background: #fffbeb;
-    color: #92400e;
-}
-.prof-chip.external-chip.active {
-    background: #b45309;
-    color: #ffffff;
-    border-color: #b45309;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
 }
 
 .filter-divider {
     color: var(--surface-border-strong);
     margin: 0 4px;
 }
-
-.chip-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.dot-prof1 { background: var(--col-prof1); }
-.dot-prof2 { background: var(--col-prof2); }
-.dot-prof3 { background: var(--col-prof3); }
-.dot-prof4 { background: var(--col-prof4); }
-.dot-prof5 { background: var(--col-prof5); }
-.dot-prof6 { background: var(--col-prof6); }
-.dot-prof7 { background: var(--col-prof7); }
 
 /* Calendar Controls & Legend */
 .prof-cal-controls-bar {

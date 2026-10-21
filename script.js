@@ -844,7 +844,7 @@ function renderProfCalendarHero() {
     document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
     if (pickProf) {
         document.getElementById('profPickText').innerHTML =
-            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · 날짜의 <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꿉니다.`;
+            `📅 <strong>${pickProf}</strong> 가능 일정 선택 중 · <strong>[오전]/[오후]</strong>를 눌러 가능/불가를 바꾸고, <strong>날짜 숫자</strong>를 누르면 하루 전체를 한 번에 선택/해제합니다.`;
         document.getElementById('btnProfPickAll').textContent =
             isProfMonthFull(pickProf, month) ? `${month}월 전체 해제` : `${month}월 전체 가능`;
     }
@@ -858,8 +858,12 @@ function renderProfCalendarHero() {
             : '';
 
         let contentHtml = '';
+        let dayNumHtml = `<span class="cal-day-num">${dayNum}</span>`;
         if (pickProf) {
             cell.className = 'cal-day-cell prof-cal-cell pick-mode';
+            const isFullDay = PERIODS.every(p => isProfAvailable(pickProf, `${dateStr} ${p.key}`));
+            dayNumHtml = `<button type="button" class="cal-day-num pick-day-btn ${isFullDay ? 'is-full' : ''}"
+                                  title="${isFullDay ? '오전·오후 한꺼번에 해제' : '오전·오후 한꺼번에 선택'}">${dayNum}</button>`;
             contentHtml = `<div class="pick-halves">${PERIODS.map(p => {
                 const on = isProfAvailable(pickProf, `${dateStr} ${p.key}`);
                 return `<button type="button" class="pick-half ${on ? 'is-on' : ''}" data-period="${p.key}"
@@ -887,13 +891,17 @@ function renderProfCalendarHero() {
 
         cell.innerHTML = `
             <div class="cal-day-header">
-                <span class="cal-day-num">${dayNum}</span>
+                ${dayNumHtml}
                 ${badgeHtml}
             </div>
             <div class="cal-day-content">${contentHtml}</div>
         `;
 
         if (pickProf) {
+            cell.querySelector('.pick-day-btn').addEventListener('click', () => {
+                toggleProfWholeDay(pickProf, dateStr);
+                renderAll();
+            });
             cell.querySelectorAll('.pick-half').forEach(btn => {
                 btn.addEventListener('click', () => {
                     toggleProfAvailability(pickProf, `${dateStr} ${btn.dataset.period}`);
@@ -905,6 +913,15 @@ function renderProfCalendarHero() {
                 openDateProfDetailModal(dateStr);
             });
         }
+    });
+}
+
+// 교수님 한 분의 하루(오전·오후) 일괄 선택/해제: 둘 다 가능이면 해제, 아니면 둘 다 가능으로
+function toggleProfWholeDay(profName, dateStr) {
+    const slots = PERIODS.map(p => `${dateStr} ${p.key}`);
+    const allOn = slots.every(slot => isProfAvailable(profName, slot));
+    slots.forEach(slot => {
+        if (isProfAvailable(profName, slot) === allOn) toggleProfAvailability(profName, slot);
     });
 }
 

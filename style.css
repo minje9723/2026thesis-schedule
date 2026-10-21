@@ -548,6 +548,30 @@ a {
     cursor: default;
 }
 
+/* 날짜 숫자 버튼: 오전·오후 일괄 선택/해제 */
+.pick-day-btn {
+    min-width: 30px;
+    padding: 1px 8px;
+    border: 1px solid var(--surface-border);
+    border-radius: 6px;
+    background: #f8fafc;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pick-day-btn:hover {
+    border-color: #34d399;
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.pick-day-btn.is-full {
+    border-color: #4ade80;
+    background: #dcfce7;
+    color: #15803d;
+}
+
 .pick-halves {
     display: flex;
     flex-direction: column;

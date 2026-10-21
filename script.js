@@ -1,52 +1,90 @@
 /**
  * 대학원 학위논문 발표 일정 조율 플랫폼 (script.js)
- * 2026.11 ~ 12월 캘린더 지원, 오버뷰 홈 대시보드, 10인 발표자 명단 및 통합 캘린더
+ * - 인당 30분 발표 배정 (30분 단위 슬롯 지원)
+ * - 석사졸업/박사주제: 내부 심사위원 3인 구성
+ * - 박사졸업: 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인 구성)
+ * - 교수님 풀 (내부 5인, 외부 2인) 연동
  */
 
 // ==========================================================================
-// 1. Initial Real Roster Data & Storage Management
+// 1. Professor Pool & Default Roster Configuration
 // ==========================================================================
 
-const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v3';
-const STORAGE_KEY_AVAIL = 'thesis_sched_avail_v3';
+const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v4';
+const STORAGE_KEY_AVAIL = 'thesis_sched_avail_v4';
 
-// Actual Presenter Roster (10 Students)
+const PROFESSOR_POOL = {
+    internal: [
+        "김수철 교수님",
+        "이상옥 교수님",
+        "권희홍 교수님",
+        "한민수 교수님",
+        "정용재 교수님"
+    ],
+    external: [
+        "정광용 교수님",
+        "조남철 교수님"
+    ]
+};
+
+// 30-minute intervals from 09:00 to 18:30
+const TIME_SLOTS = [
+    "09:00", "09:30",
+    "10:00", "10:30",
+    "11:00", "11:30",
+    "12:00", "12:30",
+    "13:00", "13:30",
+    "14:00", "14:30",
+    "15:00", "15:30",
+    "16:00", "16:30",
+    "17:00", "17:30",
+    "18:00"
+];
+
+function getEndTime30Min(startTimeStr) {
+    const [h, m] = startTimeStr.split(':').map(Number);
+    let totalMins = h * 60 + m + 30;
+    const endH = Math.floor(totalMins / 60);
+    const endM = totalMins % 60;
+    return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+}
+
 const DEFAULT_PRESENTERS = [
-    // 1. 박사졸업발표 (1명)
+    // 1. 박사졸업발표 (1명, 내부3 + 외부2 = 총 5인, 30분)
     {
         id: "p_phd_1",
         name: "김민제",
         category: "박사졸업발표",
-        duration: 120,
+        duration: 30,
         thesisTitle: "학위청구논문 심사",
         location: "세미나실 1호",
         reviewers: [
-            { id: "r_p1_1", name: "심사위원장 교수님", role: "심사위원장" },
-            { id: "r_p1_2", name: "지도교수님", role: "지도교수" },
-            { id: "r_p1_3", name: "심사위원 1 교수님", role: "심사위원" },
-            { id: "r_p1_4", name: "심사위원 2 교수님", role: "심사위원" },
-            { id: "r_p1_5", name: "심사위원 3 교수님", role: "심사위원" }
+            { id: "r_p1_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_p1_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
+            { id: "r_p1_3", name: "권희홍 교수님", role: "심사위원", type: "internal" },
+            { id: "r_p1_4", name: "정광용 교수님", role: "심사위원", type: "external" },
+            { id: "r_p1_5", name: "조남철 교수님", role: "심사위원", type: "external" }
         ],
         confirmedSchedule: {
             date: "2026-11-27",
             time: "14:00",
-            duration: 120,
+            duration: 30,
             location: "세미나실 1호"
         }
     },
 
-    // 2. 박사주제발표 (4명)
+    // 2. 박사주제발표 (4명, 내부 3인, 30분)
     {
         id: "p_prop_1",
         name: "강민지",
         category: "박사주제발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "박사 학위논문 연구계획 발표",
         location: "세미나실 2호",
         reviewers: [
-            { id: "r_prop1_1", name: "심사위원장 교수님", role: "심사위원장" },
-            { id: "r_prop1_2", name: "지도교수님", role: "지도교수" },
-            { id: "r_prop1_3", name: "심사위원 교수님", role: "심사위원" }
+            { id: "r_prop1_1", name: "김수철 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_prop1_2", name: "한민수 교수님", role: "지도교수", type: "internal" },
+            { id: "r_prop1_3", name: "정용재 교수님", role: "심사위원", type: "internal" }
         ],
         confirmedSchedule: null
     },
@@ -54,45 +92,57 @@ const DEFAULT_PRESENTERS = [
         id: "p_prop_2",
         name: "김정연",
         category: "박사주제발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "박사 학위논문 연구계획 발표",
         location: "세미나실 2호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_prop2_1", name: "권희홍 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_prop2_2", name: "이상옥 교수님", role: "지도교수", type: "internal" },
+            { id: "r_prop2_3", name: "한민수 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
     {
         id: "p_prop_3",
         name: "최소연",
         category: "박사주제발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "박사 학위논문 연구계획 발표",
         location: "세미나실 2호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_prop3_1", name: "정용재 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_prop3_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
+            { id: "r_prop3_3", name: "권희홍 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
     {
         id: "p_prop_4",
         name: "최규리",
         category: "박사주제발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "박사 학위논문 연구계획 발표",
         location: "세미나실 2호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_prop4_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_prop4_2", name: "한민수 교수님", role: "지도교수", type: "internal" },
+            { id: "r_prop4_3", name: "정용재 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
 
-    // 3. 석사졸업발표 (5명)
+    // 3. 석사졸업발표 (5명, 내부 3인, 30분)
     {
         id: "p_ms_1",
         name: "김동녘",
         category: "석사졸업발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "석사학위 청구논문 발표",
         location: "세미나실 3호",
         reviewers: [
-            { id: "r_ms1_1", name: "심사위원장 교수님", role: "심사위원장" },
-            { id: "r_ms1_2", name: "지도교수님", role: "지도교수" },
-            { id: "r_ms1_3", name: "심사위원 교수님", role: "심사위원" }
+            { id: "r_ms1_1", name: "김수철 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_ms1_2", name: "권희홍 교수님", role: "지도교수", type: "internal" },
+            { id: "r_ms1_3", name: "이상옥 교수님", role: "심사위원", type: "internal" }
         ],
         confirmedSchedule: null
     },
@@ -100,73 +150,87 @@ const DEFAULT_PRESENTERS = [
         id: "p_ms_2",
         name: "김신기",
         category: "석사졸업발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "석사학위 청구논문 발표",
         location: "세미나실 3호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_ms2_1", name: "한민수 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_ms2_2", name: "정용재 교수님", role: "지도교수", type: "internal" },
+            { id: "r_ms2_3", name: "김수철 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
     {
         id: "p_ms_3",
         name: "김효정",
         category: "석사졸업발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "석사학위 청구논문 발표",
         location: "세미나실 3호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_ms3_1", name: "권희홍 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_ms3_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
+            { id: "r_ms3_3", name: "이상옥 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
     {
         id: "p_ms_4",
         name: "박혜리",
         category: "석사졸업발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "석사학위 청구논문 발표",
         location: "세미나실 3호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_ms4_1", name: "정용재 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_ms4_2", name: "한민수 교수님", role: "지도교수", type: "internal" },
+            { id: "r_ms4_3", name: "권희홍 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     },
     {
         id: "p_ms_5",
         name: "백주은",
         category: "석사졸업발표",
-        duration: 60,
+        duration: 30,
         thesisTitle: "석사학위 청구논문 발표",
         location: "세미나실 3호",
-        reviewers: [],
+        reviewers: [
+            { id: "r_ms5_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
+            { id: "r_ms5_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
+            { id: "r_ms5_3", name: "정용재 교수님", role: "심사위원", type: "internal" }
+        ],
         confirmedSchedule: null
     }
 ];
 
 function generateDefaultAvailability() {
-    // Sample overlapping slots for Kim Minje & Kim Dongnyeok
     return {
         "p_phd_1": {
-            "p_phd_1": ["2026-11-20 14:00", "2026-11-20 15:00", "2026-11-27 14:00", "2026-11-27 15:00", "2026-12-04 14:00"],
-            "r_p1_1": ["2026-11-27 14:00", "2026-11-27 15:00", "2026-12-04 14:00"],
-            "r_p1_2": ["2026-11-20 14:00", "2026-11-27 14:00", "2026-11-27 15:00"],
-            "r_p1_3": ["2026-11-27 14:00", "2026-11-27 15:00"],
-            "r_p1_4": ["2026-11-27 14:00", "2026-11-27 15:00"],
-            "r_p1_5": ["2026-11-27 14:00", "2026-11-27 15:00"]
+            "p_phd_1": ["2026-11-20 14:00", "2026-11-20 14:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-12-04 14:00"],
+            "r_p1_1": ["2026-11-27 14:00", "2026-11-27 14:30", "2026-12-04 14:00"],
+            "r_p1_2": ["2026-11-20 14:00", "2026-11-27 14:00", "2026-11-27 14:30"],
+            "r_p1_3": ["2026-11-27 14:00", "2026-11-27 14:30"],
+            "r_p1_4": ["2026-11-27 14:00", "2026-11-27 14:30"],
+            "r_p1_5": ["2026-11-27 14:00", "2026-11-27 14:30"]
         },
         "p_ms_1": {
-            "p_ms_1": ["2026-11-19 10:00", "2026-11-19 11:00", "2026-11-26 14:00", "2026-11-26 15:00"],
-            "r_ms1_1": ["2026-11-19 10:00", "2026-11-19 11:00"],
-            "r_ms1_2": ["2026-11-19 10:00", "2026-11-19 11:00", "2026-11-26 14:00"],
-            "r_ms1_3": ["2026-11-19 10:00", "2026-11-19 11:00"]
+            "p_ms_1": ["2026-11-19 10:00", "2026-11-19 10:30", "2026-11-26 14:00", "2026-11-26 14:30"],
+            "r_ms1_1": ["2026-11-19 10:00", "2026-11-19 10:30"],
+            "r_ms1_2": ["2026-11-19 10:00", "2026-11-19 10:30", "2026-11-26 14:00"],
+            "r_ms1_3": ["2026-11-19 10:00", "2026-11-19 10:30"]
         }
     };
 }
 
-// Global Application State
 let appState = {
     presenters: [],
     availability: {},
-    activePage: 'home', // 'home' (Overview) | 'detail' (Presenter Coordination)
+    activePage: 'home',
     currentPresenterId: 'p_phd_1',
-    currentSubView: 'month', // 'month' | 'week' | 'day' | 'recommend'
+    currentSubView: 'month',
     calendarYear: 2026,
-    calendarMonth: 11, // 11 (Nov) or 12 (Dec)
+    calendarMonth: 11,
     masterCalendarMonth: 11,
     currentDayDate: '2026-11-27',
     currentWeekIndex: 0,
@@ -212,10 +276,6 @@ function resetToSampleData() {
 // ==========================================================================
 // 2. Helper Functions (Dates, Slots, Matching)
 // ==========================================================================
-
-const TIME_SLOTS = [
-    "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
-];
 
 function getCurrentPresenter() {
     return appState.presenters.find(p => p.id === appState.currentPresenterId) || appState.presenters[0];
@@ -314,13 +374,12 @@ function analyzeDate(presenter, dateStr) {
 }
 
 // ==========================================================================
-// 3. PAGE 1: HOME OVERVIEW DASHBOARD RENDERER
+// 3. PAGE 1: HOME OVERVIEW DASHBOARD
 // ==========================================================================
 
 function renderHomeOverview() {
     const presenters = appState.presenters;
 
-    // 1. Calculate Stats
     const phdGradList = presenters.filter(p => p.category === '박사졸업발표');
     const phdPropList = presenters.filter(p => p.category === '박사주제발표');
     const msList = presenters.filter(p => p.category === '석사졸업발표');
@@ -332,12 +391,10 @@ function renderHomeOverview() {
     document.getElementById('statMsCount').textContent = msList.length;
     document.getElementById('statConfirmedCount').textContent = confirmedCount;
 
-    // 2. Render Roster Grids
     renderRosterGrid('rosterPhdGrad', phdGradList);
     renderRosterGrid('rosterPhdProp', phdPropList);
     renderRosterGrid('rosterMsGrad', msList);
 
-    // 3. Render Master Calendar
     renderMasterCalendar();
 }
 
@@ -347,7 +404,8 @@ function renderRosterGrid(containerId, list) {
 
     list.forEach(p => {
         const reviewers = p.reviewers || [];
-        const hasReviewers = reviewers.length > 0;
+        const requiredCount = p.category === '박사졸업발표' ? 5 : 3;
+        const hasEnoughReviewers = reviewers.length >= requiredCount;
         const isConfirmed = p.confirmedSchedule !== null;
 
         const card = document.createElement('div');
@@ -355,25 +413,27 @@ function renderRosterGrid(containerId, list) {
 
         let statusBadgeHtml = '';
         if (isConfirmed) {
-            statusBadgeHtml = `<span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} (${p.confirmedSchedule.time}) 확정</span>`;
-        } else if (hasReviewers) {
+            const endTime = getEndTime30Min(p.confirmedSchedule.time);
+            statusBadgeHtml = `<span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} (${p.confirmedSchedule.time}~${endTime}) 확정</span>`;
+        } else if (hasEnoughReviewers) {
             statusBadgeHtml = `<span class="status-badge">조율 진행중</span>`;
         } else {
-            statusBadgeHtml = `<span class="status-badge need-committee">심사위원 등록 필요</span>`;
+            statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
         }
 
         let reviewerPreview = '';
-        if (hasReviewers) {
-            reviewerPreview = `심사위원단 ${reviewers.length}명 (${reviewers.map(r => r.name).slice(0, 3).join(', ')}${reviewers.length > 3 ? ' 외' : ''})`;
+        if (reviewers.length > 0) {
+            const listStr = reviewers.map(r => `${r.role}:${r.name.replace(' 교수님', '')}`).join(', ');
+            reviewerPreview = `<strong>심사위원 ${reviewers.length}인:</strong> ${listStr}`;
         } else {
-            reviewerPreview = '<span style="color:#ef4444;">※ 심사위원 교수님 정보가 아직 미등록 상태입니다.</span>';
+            reviewerPreview = '<span style="color:#ef4444;">※ 심사위원 교수님이 아직 지정되지 않았습니다.</span>';
         }
 
         card.innerHTML = `
             <div class="roster-card-header">
                 <div class="roster-name-wrap">
                     <h4 class="roster-student-name">${p.name}</h4>
-                    <span class="roster-duration-tag">${p.duration || 60}분</span>
+                    <span class="roster-duration-tag">30분 발표</span>
                 </div>
                 ${statusBadgeHtml}
             </div>
@@ -384,10 +444,10 @@ function renderRosterGrid(containerId, list) {
 
             <div class="roster-card-actions">
                 <button class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
-                    심사위원 등록/수정
+                    심사위원 선택/수정
                 </button>
                 <button class="btn btn-sm btn-primary btn-jump-coordination" data-id="${p.id}">
-                    일정 조율하기 →
+                    30분 일정 조율 →
                 </button>
             </div>
         `;
@@ -395,7 +455,6 @@ function renderRosterGrid(containerId, list) {
         container.appendChild(card);
     });
 
-    // Wire up card buttons
     container.querySelectorAll('.btn-manage-committee').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -413,12 +472,9 @@ function renderRosterGrid(containerId, list) {
     });
 }
 
-/**
- * Master Integrated Calendar: Shows ALL 10 presenters' defenses & availability
- */
 function renderMasterCalendar() {
     const year = 2026;
-    const month = appState.masterCalendarMonth; // 11 or 12
+    const month = appState.masterCalendarMonth;
     const grid = document.getElementById('masterCalendarGrid');
     grid.innerHTML = '';
 
@@ -429,7 +485,6 @@ function renderMasterCalendar() {
     const daysInMonth = new Date(year, month, 0).getDate();
     const prevMonthDays = new Date(year, month - 1, 0).getDate();
 
-    // 1. Prev month filler
     for (let i = firstDay - 1; i >= 0; i--) {
         const dNum = prevMonthDays - i;
         const cell = document.createElement('div');
@@ -438,17 +493,14 @@ function renderMasterCalendar() {
         grid.appendChild(cell);
     }
 
-    // 2. Current month days
     for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const dayOfWeek = new Date(year, month - 1, d).getDay();
 
-        // Check which presenters have confirmed defense on this date
         const confirmedHere = appState.presenters.filter(
             p => p.confirmedSchedule && p.confirmedSchedule.date === dateStr
         );
 
-        // Check which presenters have golden slots on this date
         const goldenHere = [];
         appState.presenters.forEach(p => {
             if (!p.confirmedSchedule || p.confirmedSchedule.date !== dateStr) {
@@ -467,20 +519,19 @@ function renderMasterCalendar() {
         cell.className = classes;
 
         let chipsHtml = '';
-        // 1) Confirmed chips
         confirmedHere.forEach(item => {
+            const end = getEndTime30Min(item.confirmedSchedule.time);
             chipsHtml += `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정">
-                    ⭐ ${item.name} (${item.confirmedSchedule.time})
+                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time}~${end} 확정">
+                    ⭐ ${item.name} (${item.confirmedSchedule.time}~${end})
                 </div>
             `;
         });
 
-        // 2) Golden slot chips
         goldenHere.slice(0, 2).forEach(item => {
             chipsHtml += `
-                <div class="cal-slot-chip golden" title="${item.presenter.name} 심사위원 전원 가능 ${item.count}개 시간대">
-                    ✓ ${item.presenter.name} 가능
+                <div class="cal-slot-chip golden" title="${item.presenter.name} 심사위원 전원 가능 30분 슬롯 ${item.count}개">
+                    ✓ ${item.presenter.name} 가능 (${item.count}개)
                 </div>
             `;
         });
@@ -494,15 +545,12 @@ function renderMasterCalendar() {
                 <span class="cal-day-num">${d}</span>
                 ${confirmedHere.length > 0 ? `<span class="cal-day-badge badge-confirmed">${confirmedHere.length}건 확정</span>` : ''}
             </div>
-            <div class="cal-day-content">
-                ${chipsHtml}
-            </div>
+            <div class="cal-day-content">${chipsHtml}</div>
         `;
 
         grid.appendChild(cell);
     }
 
-    // 3. Next month filler
     const totalRendered = firstDay + daysInMonth;
     const remaining = totalRendered <= 35 ? (35 - totalRendered) : (42 - totalRendered);
     for (let j = 1; j <= remaining; j++) {
@@ -534,7 +582,6 @@ function updatePresenterSelectorDropdown() {
     const selector = document.getElementById('currentPresenterSelect');
     selector.innerHTML = '';
 
-    // Grouping
     const groups = {
         "박사졸업발표": [],
         "박사주제발표": [],
@@ -565,25 +612,29 @@ function updateDetailBanner() {
 
     document.getElementById('bannerDegree').textContent = presenter.category;
     document.getElementById('bannerThesis').textContent = `발표자: ${presenter.name} (${presenter.thesisTitle || '학위논문 발표'})`;
-    document.getElementById('bannerDuration').textContent = `${presenter.duration || 60}분`;
-    document.getElementById('bannerLocation').textContent = presenter.location || "미정 (추후 지정)";
+    document.getElementById('bannerDuration').textContent = `인당 30분`;
+    document.getElementById('bannerLocation').textContent = presenter.location || "세미나실 1호";
 
     const statusBadge = document.getElementById('bannerStatus');
     if (presenter.confirmedSchedule) {
+        const end = getEndTime30Min(presenter.confirmedSchedule.time);
         statusBadge.className = 'status-badge confirmed';
-        statusBadge.textContent = `심사 확정 (${presenter.confirmedSchedule.date} ${presenter.confirmedSchedule.time})`;
+        statusBadge.textContent = `심사 확정 (${presenter.confirmedSchedule.date} ${presenter.confirmedSchedule.time}~${end})`;
     } else {
         statusBadge.className = 'status-badge';
         statusBadge.textContent = '일정 조율 진행중';
     }
 
     const reviewers = presenter.reviewers || [];
-    document.getElementById('bannerCommitteeCount').textContent = `총 ${reviewers.length}명 등록`;
+    const isPhdGrad = presenter.category === '박사졸업발표';
+    document.getElementById('bannerCommitteeCount').textContent = isPhdGrad
+        ? `총 ${reviewers.length}인 (내부 3 + 외부 2)`
+        : `총 ${reviewers.length}인 (내부 3)`;
 
     const tagsContainer = document.getElementById('bannerCommitteeTags');
     tagsContainer.innerHTML = `
         <div class="committee-title-row">
-            <span>심사위원단 구성</span>
+            <span>심사위원단 (${reviewers.length}인)</span>
             <span>입력현황</span>
         </div>
     `;
@@ -594,7 +645,7 @@ function updateDetailBanner() {
         tagsContainer.innerHTML += `
             <div style="font-size:0.8rem; color:#ef4444; padding:8px 0;">
                 아직 등록된 심사위원이 없습니다.<br>
-                상단의 [심사위원 정보 편집] 버튼을 눌러 등록해주세요.
+                상단의 [심사위원 선택/수정] 버튼을 눌러주세요.
             </div>
         `;
         return;
@@ -606,10 +657,13 @@ function updateDetailBanner() {
         if (r.role.includes('위원장')) roleClass = 'role-chair';
         else if (r.role.includes('지도')) roleClass = 'role-advisor';
 
+        const typeBadge = r.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : '<span class="badge-tag-internal-xs">내부</span>';
+
         const chip = document.createElement('div');
         chip.className = 'committee-member-chip';
         chip.innerHTML = `
             <div>
+                ${typeBadge}
                 <span class="member-role-tag ${roleClass}">${r.role}</span>
                 <strong>${r.name}</strong>
             </div>
@@ -625,7 +679,7 @@ function updateDetailBanner() {
 function renderMonthlyCalendar() {
     const presenter = getCurrentPresenter();
     const year = 2026;
-    const month = appState.calendarMonth; // 11 or 12
+    const month = appState.calendarMonth;
 
     document.getElementById('periodLabel').textContent = `${year}년 ${month}월`;
     document.getElementById('chipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
@@ -660,7 +714,7 @@ function renderMonthlyCalendar() {
 
         let badgeHtml = '';
         if (dateAnalysis.isConfirmed) {
-            badgeHtml = `<span class="cal-day-badge badge-confirmed">심사 확정</span>`;
+            badgeHtml = `<span class="cal-day-badge badge-confirmed">30분 확정</span>`;
         } else if (dateAnalysis.goldenSlotCount > 0) {
             badgeHtml = `<span class="cal-day-badge badge-golden">전원가능 ${dateAnalysis.goldenSlotCount}건</span>`;
         } else if (dateAnalysis.majoritySlotCount > 0) {
@@ -669,11 +723,13 @@ function renderMonthlyCalendar() {
 
         let chipsHtml = '';
         if (dateAnalysis.isConfirmed) {
-            chipsHtml += `<div class="cal-slot-chip confirmed-chip">⭐ ${presenter.confirmedSchedule.time} 심사 확정</div>`;
+            const end = getEndTime30Min(presenter.confirmedSchedule.time);
+            chipsHtml += `<div class="cal-slot-chip confirmed-chip">⭐ ${presenter.confirmedSchedule.time}~${end} 심사</div>`;
         } else if (dateAnalysis.goldenSlotCount > 0) {
             TIME_SLOTS.forEach(time => {
                 if (analyzeSlot(presenter, `${dateStr} ${time}`).isAllMatch && chipsHtml === '') {
-                    chipsHtml += `<div class="cal-slot-chip golden">✓ ${time} 전원 일치</div>`;
+                    const end = getEndTime30Min(time);
+                    chipsHtml += `<div class="cal-slot-chip golden">✓ ${time}~${end} 전원 일치</div>`;
                 }
             });
         }
@@ -685,7 +741,7 @@ function renderMonthlyCalendar() {
             </div>
             <div class="cal-day-content">${chipsHtml}</div>
             <div class="cal-day-footer">
-                ${dateAnalysis.anySlotCount > 0 ? `가능 시간대 ${dateAnalysis.anySlotCount}개` : '<span style="color:#cbd5e1;">일정 없음</span>'}
+                ${dateAnalysis.anySlotCount > 0 ? `가능 슬롯 ${dateAnalysis.anySlotCount}개` : '<span style="color:#cbd5e1;">일정 없음</span>'}
             </div>
         `;
 
@@ -708,7 +764,7 @@ function renderMonthlyCalendar() {
 }
 
 /**
- * INDIVIDUAL SUBVIEW 2: WEEKLY TIMETABLE
+ * INDIVIDUAL SUBVIEW 2: WEEKLY TIMETABLE (30 MIN SLOTS)
  */
 function getAllWeeks() {
     const weeks = [];
@@ -763,7 +819,7 @@ function renderWeeklyTimetable() {
     const currentWeek = weeks[appState.currentWeekIndex] || weeks[0];
     const displayDays = hideWeekend ? currentWeek.days.filter(d => !d.isWeekend) : currentWeek.days;
 
-    let tableHtml = `<table class="weekly-table"><thead><tr><th style="width: 80px;">시간</th>`;
+    let tableHtml = `<table class="weekly-table"><thead><tr><th style="width: 100px;">시간 (30분)</th>`;
 
     displayDays.forEach(d => {
         tableHtml += `
@@ -777,7 +833,8 @@ function renderWeeklyTimetable() {
     tableHtml += `</tr></thead><tbody>`;
 
     TIME_SLOTS.forEach(time => {
-        tableHtml += `<tr><td class="time-col">${time}</td>`;
+        const endTime = getEndTime30Min(time);
+        tableHtml += `<tr><td class="time-col" style="font-size:0.75rem;">${time}~${endTime}</td>`;
 
         displayDays.forEach(d => {
             const dateTimeStr = `${d.dateStr} ${time}`;
@@ -791,13 +848,13 @@ function renderWeeklyTimetable() {
 
             if (isConfirmed) {
                 cellClass += ' slot-confirmed';
-                cellContent = `<span class="slot-inner-badge">⭐ 심사확정</span>`;
+                cellContent = `<span class="slot-inner-badge">⭐ 30분 확정</span>`;
             } else if (analysis.isAllMatch) {
                 cellClass += ' slot-all';
                 cellContent = `<span class="slot-inner-badge">✓ 전원 가능 (${analysis.total}/${analysis.total})</span>`;
             } else if (analysis.ratio >= 0.6) {
                 cellClass += ' slot-most';
-                cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명 가능</span>`;
+                cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
             } else if (analysis.availableCount > 0) {
                 cellClass += ' slot-partial';
                 cellContent = `<span class="slot-inner-badge">${analysis.availableCount}/${analysis.total}명</span>`;
@@ -806,7 +863,7 @@ function renderWeeklyTimetable() {
                 cellContent = `<span style="font-size:0.7rem; color:#cbd5e1;">-</span>`;
             }
 
-            const tooltip = `[${dateTimeStr}]\n가능: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
+            const tooltip = `[${dateTimeStr} ~ ${endTime}]\n가능: ${analysis.availableNames.join(', ') || '없음'}\n불가: ${analysis.unavailableNames.join(', ') || '없음'}`;
 
             tableHtml += `
                 <td class="${cellClass}" title="${tooltip}" data-datetime="${dateTimeStr}">
@@ -834,7 +891,7 @@ function renderWeeklyTimetable() {
 }
 
 /**
- * INDIVIDUAL SUBVIEW 3: DAILY DETAIL & INSTANT EDIT
+ * INDIVIDUAL SUBVIEW 3: DAILY DETAIL (30-MIN SLOTS)
  */
 function renderDailyDetail() {
     const presenter = getCurrentPresenter();
@@ -849,13 +906,14 @@ function renderDailyDetail() {
     const participants = getAllParticipants(presenter);
     const matrixContainer = document.getElementById('dailyMatrix');
 
-    let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 100px;" class="center">시간</th>`;
+    let tableHtml = `<table class="daily-table"><thead><tr><th style="width: 110px;" class="center">30분 슬롯</th>`;
 
     participants.forEach(p => {
+        const typeBadge = p.type === 'external' ? '<span class="badge-tag-external-xs">외부</span>' : (p.type === 'internal' ? '<span class="badge-tag-internal-xs">내부</span>' : '');
         tableHtml += `
             <th>
                 <div class="daily-person-header">
-                    <span>${p.name}</span>
+                    <span>${typeBadge} ${p.name}</span>
                     <span class="p-role">${p.role}</span>
                 </div>
             </th>
@@ -864,13 +922,14 @@ function renderDailyDetail() {
 
     tableHtml += `
                     <th style="width: 130px;" class="center">참석 현황</th>
-                    <th style="width: 140px;" class="center">심사 확정</th>
+                    <th style="width: 140px;" class="center">30분 심사 확정</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
     TIME_SLOTS.forEach(time => {
+        const endTime = getEndTime30Min(time);
         const dateTimeStr = `${dateStr} ${time}`;
         const analysis = analyzeSlot(presenter, dateTimeStr);
         const isConfirmed = presenter.confirmedSchedule &&
@@ -881,7 +940,7 @@ function renderDailyDetail() {
 
         tableHtml += `
             <tr class="${rowClass}">
-                <td class="center" style="font-weight:700;">${time}</td>
+                <td class="center" style="font-weight:700; font-size:0.8rem;">${time} ~ ${endTime}</td>
         `;
 
         participants.forEach(p => {
@@ -936,7 +995,7 @@ function renderDailyDetail() {
             toggleSlotAvailability(presenter.id, personId, dt);
             renderDailyDetail();
             updateDetailBanner();
-            showToast("일정이 즉시 반영되었습니다.");
+            showToast("30분 슬롯 일정이 즉시 반영되었습니다.");
         });
     });
 
@@ -950,7 +1009,7 @@ function renderDailyDetail() {
 }
 
 /**
- * INDIVIDUAL SUBVIEW 4: RECOMMENDATIONS
+ * INDIVIDUAL SUBVIEW 4: RECOMMENDATIONS (30-MIN SLOTS)
  */
 function renderRecommendations() {
     const presenter = getCurrentPresenter();
@@ -977,8 +1036,8 @@ function renderRecommendations() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🔍</div>
-                <h4>아직 심사위원 전원 가능한 일정이 없습니다.</h4>
-                <p>발표자 또는 심사위원 교수님들의 가능한 시간대를 조금 더 추가 입력해주세요.</p>
+                <h4>아직 심사위원 전원 가능한 30분 일정이 없습니다.</h4>
+                <p>발표자 또는 교수님들의 가능한 시간대를 조금 더 추가 선택해주세요.</p>
                 <button class="btn btn-primary" style="margin-top:14px;" onclick="document.getElementById('btnQuickInput').click()">
                     시간표 체크 입력하기
                 </button>
@@ -991,6 +1050,7 @@ function renderRecommendations() {
         const [y, m, d] = slot.dateStr.split('-');
         const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
         const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+        const endTime = getEndTime30Min(slot.time);
         const isConfirmed = presenter.confirmedSchedule &&
                             presenter.confirmedSchedule.date === slot.dateStr &&
                             presenter.confirmedSchedule.time === slot.time;
@@ -1001,19 +1061,19 @@ function renderRecommendations() {
             <div class="rec-rank-badge">#${index + 1}</div>
             <div class="rec-info">
                 <div class="rec-datetime">
-                    ${y}년 ${m}월 ${d}일 (${dayName}) ${slot.time}
+                    ${y}년 ${m}월 ${d}일 (${dayName}) ${slot.time} ~ ${endTime} (30분)
                     ${isConfirmed ? '<span class="status-badge confirmed" style="margin-left:8px;">현재 확정된 일정</span>' : ''}
                 </div>
                 <div class="rec-meta">
-                    <span>✨ <strong>심사위원 전원(${slot.analysis.total}명) 참석 가능</strong></span>
-                    <span>예상 소요시간: ${presenter.duration || 60}분</span>
-                    <span>장소: ${presenter.location || '미정'}</span>
+                    <span>✨ <strong>심사위원 전원(${slot.analysis.total}인) 참석 가능</strong></span>
+                    <span>배정 시간: 30분</span>
+                    <span>장소: ${presenter.location || '세미나실'}</span>
                 </div>
             </div>
             <div class="rec-actions">
                 <button class="btn btn-outline btn-sm btn-rec-jump" data-date="${slot.dateStr}">일자별 상세 보기</button>
                 <button class="btn btn-success btn-sm btn-rec-confirm" data-date="${slot.dateStr}" data-time="${slot.time}">
-                    ${isConfirmed ? '확정 정보 변경' : '이 일정으로 확정'}
+                    ${isConfirmed ? '확정 정보 변경' : '이 시간으로 확정'}
                 </button>
             </div>
         `;
@@ -1038,65 +1098,106 @@ function renderRecommendations() {
 }
 
 // ==========================================================================
-// 5. MODAL HANDLERS & SIMPLIFIED FORMS (NO DEPT / AFFIL)
+// 5. COMMITTEE MANAGEMENT MODAL (내부5인 / 외부2인 풀 연동)
 // ==========================================================================
 
-function openPresenterModal(presenterToEdit = null) {
+function openPresenterModal(presenterToEdit) {
     const modal = document.getElementById('modalPresenter');
     const title = document.getElementById('modalPresenterTitle');
-    const list = document.getElementById('reviewersInputList');
-    list.innerHTML = '';
+    const subtitle = document.getElementById('modalPresenterSubtitle');
 
-    if (presenterToEdit) {
-        title.textContent = `${presenterToEdit.name} 심사위원 및 발표 정보`;
-        document.getElementById('editPresenterId').value = presenterToEdit.id;
-        document.getElementById('inputPresenterName').value = presenterToEdit.name;
-        document.getElementById('inputCategory').value = presenterToEdit.category;
-        document.getElementById('inputDuration').value = presenterToEdit.duration || 60;
-        document.getElementById('inputThesisTitle').value = presenterToEdit.thesisTitle || '';
-        document.getElementById('inputLocation').value = presenterToEdit.location || '';
+    title.textContent = `${presenterToEdit.name} 심사위원단 및 발표 정보 설정`;
+    document.getElementById('editPresenterId').value = presenterToEdit.id;
+    document.getElementById('inputPresenterName').value = presenterToEdit.name;
+    document.getElementById('inputCategory').value = presenterToEdit.category;
+    document.getElementById('inputThesisTitle').value = presenterToEdit.thesisTitle || '';
+    document.getElementById('inputLocation').value = presenterToEdit.location || '세미나실 1호';
 
-        const reviewers = presenterToEdit.reviewers || [];
-        if (reviewers.length > 0) {
-            reviewers.forEach(r => addReviewerRow(r.name, r.role));
-        } else {
-            // Default rows based on category
-            const count = presenterToEdit.category === '박사졸업발표' ? 5 : 3;
-            addReviewerRow('', '심사위원장');
-            addReviewerRow('', '지도교수');
-            for (let k = 3; k <= count; k++) {
-                addReviewerRow('', '심사위원');
-            }
-        }
-    } else {
-        title.textContent = '새 발표자 등록';
-        document.getElementById('editPresenterId').value = '';
-        document.getElementById('inputPresenterName').value = '';
-        document.getElementById('inputCategory').value = '석사졸업발표';
-        document.getElementById('inputDuration').value = '60';
-        document.getElementById('inputThesisTitle').value = '';
-        document.getElementById('inputLocation').value = '';
+    const isPhdGrad = presenterToEdit.category === '박사졸업발표';
+    subtitle.textContent = isPhdGrad
+        ? "규정: 박사졸업발표는 내부 심사위원 3인 + 외부 심사위원 2인 (총 5인) 구성입니다."
+        : "규정: 석사졸업발표 및 박사주제발표는 내부 심사위원 3인 구성입니다.";
 
-        addReviewerRow('', '심사위원장');
-        addReviewerRow('', '지도교수');
-        addReviewerRow('', '심사위원');
-    }
+    renderCommitteeRows(presenterToEdit.category, presenterToEdit.reviewers);
+
+    // Watch category change to automatically adapt rows
+    const catSelect = document.getElementById('inputCategory');
+    catSelect.onchange = () => {
+        renderCommitteeRows(catSelect.value, []);
+    };
 
     modal.classList.add('active');
 }
 
-function addReviewerRow(name = '', role = '심사위원') {
+function renderCommitteeRows(category, existingReviewers = []) {
+    const list = document.getElementById('reviewersInputList');
+    list.innerHTML = '';
+
+    const isPhdGrad = category === '박사졸업발표';
+    const hint = document.getElementById('committeeRuleHint');
+
+    if (isPhdGrad) {
+        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (정광용, 조남철) 총 5인을 지정하세요.`;
+
+        // 5 rows: 3 internal, 2 external
+        const defaultRoles = [
+            { role: "심사위원장", type: "internal" },
+            { role: "지도교수", type: "internal" },
+            { role: "심사위원", type: "internal" },
+            { role: "심사위원", type: "external" },
+            { role: "심사위원", type: "external" }
+        ];
+
+        defaultRoles.forEach((def, idx) => {
+            const current = existingReviewers[idx];
+            const currentName = current ? current.name : '';
+            addProfessorSelectRow(def.role, def.type, currentName);
+        });
+    } else {
+        hint.innerHTML = `<span class="badge-tag-internal">내부 심사위원 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재)을 지정하세요.`;
+
+        // 3 rows: internal
+        const defaultRoles = [
+            { role: "심사위원장", type: "internal" },
+            { role: "지도교수", type: "internal" },
+            { role: "심사위원", type: "internal" }
+        ];
+
+        defaultRoles.forEach((def, idx) => {
+            const current = existingReviewers[idx];
+            const currentName = current ? current.name : '';
+            addProfessorSelectRow(def.role, def.type, currentName);
+        });
+    }
+}
+
+function addProfessorSelectRow(role = '심사위원', type = 'internal', selectedName = '') {
     const list = document.getElementById('reviewersInputList');
     const row = document.createElement('div');
-    row.className = 'reviewer-row-item simple-reviewer-row';
+    row.className = 'reviewer-row-item prof-select-row';
+
+    const pool = type === 'external' ? PROFESSOR_POOL.external : PROFESSOR_POOL.internal;
+    const typeLabel = type === 'external' ? '외부' : '내부';
+    const typeBadgeClass = type === 'external' ? 'badge-tag-external-xs' : 'badge-tag-internal-xs';
+
+    let optionsHtml = `<option value="">-- ${typeLabel} 교수님 선택 --</option>`;
+    pool.forEach(pName => {
+        optionsHtml += `<option value="${pName}" ${selectedName === pName ? 'selected' : ''}>${pName}</option>`;
+    });
+
     row.innerHTML = `
-        <select class="form-control r-role">
-            <option value="심사위원장" ${role === '심사위원장' ? 'selected' : ''}>심사위원장</option>
-            <option value="지도교수" ${role === '지도교수' ? 'selected' : ''}>지도교수</option>
-            <option value="심사위원" ${role === '심사위원' ? 'selected' : ''}>심사위원</option>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span class="${typeBadgeClass}">${typeLabel}</span>
+            <select class="form-control r-role" style="font-size:0.8rem;">
+                <option value="심사위원장" ${role === '심사위원장' ? 'selected' : ''}>심사위원장</option>
+                <option value="지도교수" ${role === '지도교수' ? 'selected' : ''}>지도교수</option>
+                <option value="심사위원" ${role === '심사위원' ? 'selected' : ''}>심사위원</option>
+            </select>
+        </div>
+        <select class="form-control r-name" data-type="${type}" required>
+            ${optionsHtml}
         </select>
-        <input type="text" class="form-control r-name" placeholder="교수님 성함 (예: 홍길동 교수)" value="${name}" required>
-        <button type="button" class="btn-remove-row" title="삭제">&times;</button>
+        <button type="button" class="btn-remove-row" title="행 삭제">&times;</button>
     `;
 
     row.querySelector('.btn-remove-row').addEventListener('click', () => {
@@ -1106,14 +1207,17 @@ function addReviewerRow(name = '', role = '심사위원') {
     list.appendChild(row);
 }
 
-// Save Presenter & Committee Form
+document.getElementById('btnAddReviewerRow').addEventListener('click', () => {
+    const cat = document.getElementById('inputCategory').value;
+    const type = cat === '박사졸업발표' ? 'external' : 'internal';
+    addProfessorSelectRow('심사위원', type, '');
+});
+
 document.getElementById('formPresenter').addEventListener('submit', (e) => {
     e.preventDefault();
 
     const editId = document.getElementById('editPresenterId').value;
-    const name = document.getElementById('inputPresenterName').value.trim();
     const category = document.getElementById('inputCategory').value;
-    const duration = parseInt(document.getElementById('inputDuration').value, 10);
     const thesisTitle = document.getElementById('inputThesisTitle').value.trim();
     const location = document.getElementById('inputLocation').value.trim();
 
@@ -1121,55 +1225,36 @@ document.getElementById('formPresenter').addEventListener('submit', (e) => {
     const reviewers = [];
     reviewerRows.forEach((row, idx) => {
         const rRole = row.querySelector('.r-role').value;
-        const rName = row.querySelector('.r-name').value.trim();
+        const nameSelect = row.querySelector('.r-name');
+        const rName = nameSelect.value;
+        const type = nameSelect.getAttribute('data-type');
         if (rName) {
             reviewers.push({
-                id: editId ? `r_${editId}_${idx + 1}` : `r_new_${Date.now()}_${idx + 1}`,
+                id: `r_${editId}_${idx + 1}`,
                 name: rName,
-                role: rRole
+                role: rRole,
+                type: type || 'internal'
             });
         }
     });
 
-    if (editId) {
-        const p = appState.presenters.find(x => x.id === editId);
-        if (p) {
-            p.name = name;
-            p.category = category;
-            p.duration = duration;
-            p.thesisTitle = thesisTitle;
-            p.location = location;
-            p.reviewers = reviewers;
-        }
-        showToast(`${name} 발표자 정보가 저장되었습니다.`);
-    } else {
-        const newId = `p_user_${Date.now()}`;
-        reviewers.forEach((r, idx) => {
-            r.id = `r_${newId}_${idx + 1}`;
-        });
-        const newPresenter = {
-            id: newId,
-            name,
-            category,
-            duration,
-            thesisTitle,
-            location,
-            reviewers,
-            confirmedSchedule: null
-        };
-        appState.presenters.push(newPresenter);
-        appState.availability[newId] = {};
-        appState.currentPresenterId = newId;
-        showToast(`새 발표자(${name})가 등록되었습니다.`);
+    const p = appState.presenters.find(x => x.id === editId);
+    if (p) {
+        p.category = category;
+        p.duration = 30; // Enforce 30 mins
+        p.thesisTitle = thesisTitle;
+        p.location = location;
+        p.reviewers = reviewers;
     }
 
     saveState();
     closeModal('modalPresenter');
     renderAll();
+    showToast(`${p.name} 심사위원단 및 발표 정보가 저장되었습니다.`);
 });
 
 /**
- * MODAL 2: QUICK SCHEDULE AVAILABILITY ENTRY
+ * MODAL 2: 30-MIN AVAILABILITY ENTRY
  */
 function openAvailabilityModal() {
     const presenter = getCurrentPresenter();
@@ -1202,7 +1287,7 @@ function openAvailabilityModal() {
 function renderInteractiveAvailTable() {
     const presenter = getCurrentPresenter();
     const personId = appState.modalAvailTargetPersonId;
-    const month = appState.modalAvailMonth; // 11 or 12
+    const month = appState.modalAvailMonth;
     const tableContainer = document.getElementById('availTable');
 
     document.getElementById('modalChipNov').className = `btn-chip ${month === 11 ? 'active' : ''}`;
@@ -1222,7 +1307,7 @@ function renderInteractiveAvailTable() {
         }
     }
 
-    let tableHtml = `<table class="interactive-avail-table"><thead><tr><th style="min-width: 70px;">시간</th>`;
+    let tableHtml = `<table class="interactive-avail-table"><thead><tr><th style="min-width: 85px;">30분 슬롯</th>`;
 
     weekdays.forEach(w => {
         tableHtml += `<th style="min-width: 48px;">${w.dayName}<br>${w.dayNum}일</th>`;
@@ -1231,7 +1316,8 @@ function renderInteractiveAvailTable() {
     tableHtml += `</tr></thead><tbody>`;
 
     TIME_SLOTS.forEach(time => {
-        tableHtml += `<tr><td style="font-weight:700; background:#f8fafc;">${time}</td>`;
+        const endTime = getEndTime30Min(time);
+        tableHtml += `<tr><td style="font-weight:700; background:#f8fafc; font-size:0.75rem;">${time}~${endTime}</td>`;
 
         weekdays.forEach(w => {
             const dt = `${w.dateStr} ${time}`;
@@ -1239,7 +1325,7 @@ function renderInteractiveAvailTable() {
             tableHtml += `
                 <td class="avail-check-cell ${isAvail ? 'selected' : ''}" 
                     data-datetime="${dt}" 
-                    title="${dt}">
+                    title="${dt} ~ ${endTime}">
                 </td>
             `;
         });
@@ -1288,17 +1374,17 @@ function renderInteractiveAvailTable() {
 }
 
 /**
- * MODAL 3: CONFIRM FINAL DEFENSE SCHEDULE
+ * MODAL 3: CONFIRM 30-MIN DEFENSE SCHEDULE
  */
 function openConfirmModal(presenter, dateStr, timeStr) {
     const modal = document.getElementById('modalConfirmDefense');
     const [y, m, d] = dateStr.split('-');
     const dayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
     const dayName = ["일", "월", "화", "수", "목", "금", "토"][dayDate.getDay()];
+    const endTime = getEndTime30Min(timeStr);
 
     document.getElementById('confirmModalPresenter').textContent = `${presenter.name} (${presenter.category})`;
-    document.getElementById('confirmModalDateTime').textContent = `${y}년 ${m}월 ${d}일 (${dayName}) ${timeStr}`;
-    document.getElementById('confirmModalDuration').textContent = `${presenter.duration || 60}분`;
+    document.getElementById('confirmModalDateTime').textContent = `${y}년 ${m}월 ${d}일 (${dayName}) ${timeStr} ~ ${endTime}`;
     document.getElementById('confirmModalLocation').value = presenter.location || "세미나실 1호";
 
     const btnCancel = document.getElementById('btnCancelConfirmation');
@@ -1313,13 +1399,13 @@ function openConfirmModal(presenter, dateStr, timeStr) {
         presenter.confirmedSchedule = {
             date: dateStr,
             time: timeStr,
-            duration: presenter.duration || 60,
+            duration: 30,
             location: document.getElementById('confirmModalLocation').value.trim() || '세미나실'
         };
         saveState();
         closeModal('modalConfirmDefense');
         renderAll();
-        showToast("학위논문 발표 일정이 최종 확정되었습니다! 🎉");
+        showToast("학위논문 30분 발표 일정이 최종 확정되었습니다! 🎉");
     };
 
     btnCancel.onclick = () => {
@@ -1336,7 +1422,7 @@ function openConfirmModal(presenter, dateStr, timeStr) {
 }
 
 /**
- * MODAL 4: ANNOUNCEMENT COPY
+ * MODAL 5: ANNOUNCEMENT COPY (30 MIN)
  */
 function openNoticeModal() {
     const presenter = getCurrentPresenter();
@@ -1346,14 +1432,15 @@ function openNoticeModal() {
     const confirmed = presenter.confirmedSchedule;
     const reviewers = presenter.reviewers || [];
     let reviewerListStr = reviewers.length > 0
-        ? reviewers.map(r => `  - ${r.role}: ${r.name}`).join('\n')
+        ? reviewers.map(r => `  - [${r.type === 'external' ? '외부' : '내부'}] ${r.role}: ${r.name}`).join('\n')
         : '  (심사위원단 구성 예정)';
 
     let scheduleNotice = '';
     if (confirmed) {
+        const endTime = getEndTime30Min(confirmed.time);
         scheduleNotice = `
 [발표 확정 일시 및 장소]
-■ 일시: ${confirmed.date} (${confirmed.time} ~ ) [소요시간: 약 ${confirmed.duration}분]
+■ 일시: ${confirmed.date} (${confirmed.time} ~ ${endTime}) [배정 시간: 30분]
 ■ 장소: ${confirmed.location}
 `;
     } else {
@@ -1364,7 +1451,8 @@ function openNoticeModal() {
                 const dateStr = `2026-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 TIME_SLOTS.forEach(time => {
                     if (analyzeSlot(presenter, `${dateStr} ${time}`).isAllMatch) {
-                        matched.push(`${dateStr} ${time}`);
+                        const end = getEndTime30Min(time);
+                        matched.push(`${dateStr} ${time} ~ ${end}`);
                     }
                 });
             }
@@ -1373,24 +1461,25 @@ function openNoticeModal() {
         const topSlots = matched.slice(0, 3).map((s, idx) => `  ${idx + 1}. ${s}`).join('\n');
 
         scheduleNotice = `
-[심사위원 전원 가능 추천 일시 (조율중)]
+[심사위원 전원 가능 30분 추천 일시 (조율중)]
 ${topSlots || '  (현재 전원 가능한 시간을 취합 중입니다)'}
 ※ 최종 시간 확정 후 재안내 예정입니다.
 `;
     }
 
-    const noticeText = `[2026 후기 학위논문 발표 일정 안내]
+    const noticeText = `[2026 후기 학위논문 발표 일정 안내 (인당 30분)]
 
 안녕하세요, ${presenter.category} 대상자 ${presenter.name}입니다.
 
 2026년 후기 학위청구논문 발표 및 심사 일정을 아래와 같이 공유드립니다.
 
 1. 발표자: ${presenter.name} (${presenter.category})
-2. 논문 제목: ${presenter.thesisTitle || '학위논문 발표'}
-3. 심사위원단:
+2. 배정 시간: 인당 30분
+3. 논문 제목: ${presenter.thesisTitle || '학위논문 발표'}
+4. 심사위원단 구성:
 ${reviewerListStr}
 
-4. 발표 일정:
+5. 발표 일정:
 ${scheduleNotice}
 감사합니다.
 
@@ -1477,17 +1566,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadState();
     renderAll();
 
-    // Brand and Home button
     document.getElementById('brandHomeBtn').addEventListener('click', navigateToHome);
     document.getElementById('btnNavHome').addEventListener('click', navigateToHome);
     document.getElementById('btnBackToHome').addEventListener('click', navigateToHome);
 
-    // Top Dropdown
+    document.getElementById('btnProfPoolModal').addEventListener('click', () => {
+        document.getElementById('modalProfPool').classList.add('active');
+    });
+
     document.getElementById('currentPresenterSelect').addEventListener('change', (e) => {
         navigateToPresenter(e.target.value);
     });
 
-    // Detail Action Buttons
     document.getElementById('btnEditCommitteeDirect').addEventListener('click', () => {
         openPresenterModal(getCurrentPresenter());
     });
@@ -1495,7 +1585,6 @@ document.addEventListener('DOMContentLoaded', () => {
         openAvailabilityModal();
     });
 
-    // Master Calendar Month Toggles
     document.getElementById('btnMasterNov').addEventListener('click', () => {
         appState.masterCalendarMonth = 11;
         renderMasterCalendar();
@@ -1505,14 +1594,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMasterCalendar();
     });
 
-    // Subtabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             switchSubView(btn.getAttribute('data-subview'));
         });
     });
 
-    // Month navigation in Detail Month view
     document.getElementById('btnPrevPeriod').addEventListener('click', () => {
         appState.calendarMonth = appState.calendarMonth === 12 ? 11 : 12;
         renderMonthlyCalendar();
@@ -1530,14 +1617,12 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMonthlyCalendar();
     });
 
-    // Week selector
     document.getElementById('weekSelect').addEventListener('change', (e) => {
         appState.currentWeekIndex = parseInt(e.target.value, 10);
         renderWeeklyTimetable();
     });
     document.getElementById('chkOnlyWeekdays').addEventListener('change', renderWeeklyTimetable);
 
-    // Day picker
     document.getElementById('btnPrevDay').addEventListener('click', () => {
         const [y, m, d] = appState.currentDayDate.split('-');
         const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d) - 1);
@@ -1559,12 +1644,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDailyDetail();
     });
 
-    // Header Confirm button
     document.getElementById('btnConfirmSlot').addEventListener('click', () => {
         openConfirmModal(getCurrentPresenter(), appState.currentDayDate, "14:00");
     });
 
-    // Announcement
     document.getElementById('btnCopyAnnouncement').addEventListener('click', openNoticeModal);
     document.getElementById('btnDoCopyNotice').addEventListener('click', () => {
         const textarea = document.getElementById('noticeTextarea');
@@ -1579,12 +1662,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Reviewer Dynamic Row in Modal
-    document.getElementById('btnAddReviewerRow').addEventListener('click', () => {
-        addReviewerRow();
-    });
-
-    // Availability modal controls
     document.getElementById('availTargetSelect').addEventListener('change', (e) => {
         appState.modalAvailTargetPersonId = e.target.value;
         renderInteractiveAvailTable();
@@ -1639,7 +1716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast("해당 월의 선택이 초기화되었습니다.");
     });
 
-    // Modal Close
     document.querySelectorAll('.modal-close, [data-close]').forEach(btn => {
         btn.addEventListener('click', () => {
             const targetModalId = btn.getAttribute('data-close') || btn.closest('.modal-backdrop').id;

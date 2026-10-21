@@ -117,7 +117,7 @@ const DEFAULT_PRESENTERS = [
         }
     },
 
-    // 2. 박사주제발표 (4명)
+    // 2. 박사주제발표 (5명)
     {
         id: "p_prop_1",
         name: "강민지",
@@ -172,6 +172,16 @@ const DEFAULT_PRESENTERS = [
             { id: "r_prop4_2", name: "한민수 교수님", role: "지도교수", type: "internal" },
             { id: "r_prop4_3", name: "정용재 교수님", role: "심사위원", type: "internal" }
         ],
+        confirmedSchedule: null
+    },
+    {
+        id: "p_prop_5",
+        name: "오은정",
+        category: "박사주제발표",
+        duration: 30,
+        thesisTitle: "박사 학위논문 연구계획 발표",
+        location: "세미나실 2호",
+        reviewers: [],
         confirmedSchedule: null
     },
 
@@ -1110,36 +1120,33 @@ function renderRosterGrid(containerId, list) {
         if (isConfirmed) {
             const endTime = getEndTime30Min(p.confirmedSchedule.time);
             statusBadgeHtml = `
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} (${p.confirmedSchedule.time}~${endTime}) 확정</span>
-                    <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다" style="padding:2px 8px; font-size:0.72rem;">
-                        취소
-                    </button>
-                </div>
+                <span class="status-badge confirmed">⭐ ${p.confirmedSchedule.date} ${p.confirmedSchedule.time}~${endTime} 확정</span>
+                <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다">취소</button>
             `;
         } else if (reviewers.length === 0) {
             statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
         } else if (totalGoldenSlots > 0) {
-            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 ${totalGoldenSlots}개 슬롯 발견</span>`;
+            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 ${totalGoldenSlots}개 슬롯</span>`;
         } else {
             statusBadgeHtml = `<span class="status-badge">교수님 일정 취합중</span>`;
         }
 
-        let reviewerListStr = reviewers.length > 0
-            ? reviewers.map(r => `${r.role}:${getProfShortName(r.name)}`).join(', ')
-            : '미등록';
+        // 항목(역할+이름) 단위로만 줄바꿈되도록 각각 묶어서 표시
+        const reviewerListHtml = reviewers.length > 0
+            ? reviewers.map(r => `<span class="roster-reviewer"><span class="roster-reviewer-role">${r.role}</span>${getProfShortName(r.name)}</span>`).join('')
+            : '<span class="roster-reviewer-empty">미등록</span>';
 
         card.innerHTML = `
             <div class="roster-card-header">
-                <div class="roster-name-wrap">
-                    <h4 class="roster-student-name">${p.name}</h4>
-                    <span class="roster-duration-tag">30분 발표</span>
-                </div>
-                ${statusBadgeHtml}
+                <h4 class="roster-student-name">${p.name}</h4>
+                <span class="roster-duration-tag">30분 발표</span>
             </div>
 
+            <div class="roster-status-row">${statusBadgeHtml}</div>
+
             <div class="roster-reviewer-preview">
-                <strong>심사위원단 (${reviewers.length}인):</strong> ${reviewerListStr}
+                <div class="roster-reviewer-title">심사위원단 ${reviewers.length}인</div>
+                <div class="roster-reviewer-list">${reviewerListHtml}</div>
             </div>
 
             <div class="roster-card-actions">

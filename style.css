@@ -628,7 +628,6 @@ a {
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     transition: all 0.2s ease;
     min-height: 140px;
 }
@@ -644,40 +643,74 @@ a {
     background: linear-gradient(135deg, #ffffff 0%, #faf8ff 100%);
 }
 
+/* 카드 구성: 이름 줄 → 상태 줄 → 심사위원단 → 버튼 (글자 크기 1.1 / 0.75 / 0.8rem 3단계) */
 .roster-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-    gap: 8px;
-}
-
-.roster-name-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
 }
 
 .roster-student-name {
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-primary);
+    white-space: nowrap;
 }
 
 .roster-duration-tag {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     background: var(--surface-subtle);
     color: var(--text-secondary);
     padding: 2px 6px;
     border-radius: var(--radius-sm);
     font-weight: 600;
+    white-space: nowrap;
+}
+
+.roster-status-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.roster-status-row .btn-roster-cancel {
+    padding: 2px 8px;
+    font-size: 0.75rem;
 }
 
 .roster-reviewer-preview {
-    font-size: 0.825rem;
+    font-size: 0.8rem;
     color: var(--text-secondary);
     margin-bottom: 14px;
-    line-height: 1.4;
+    line-height: 1.5;
+}
+
+.roster-reviewer-title {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.roster-reviewer-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 12px;
+}
+
+.roster-reviewer {
+    white-space: nowrap;
+}
+
+.roster-reviewer-role {
+    color: var(--text-muted);
+    margin-right: 4px;
+}
+
+.roster-reviewer-empty {
+    color: var(--text-muted);
 }
 
 .roster-card-actions {
@@ -2143,11 +2176,6 @@ a {
     .roster-card {
         padding: 14px;
         border-radius: 12px;
-    }
-    .roster-card-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
     }
     .roster-card-actions {
         flex-direction: column;

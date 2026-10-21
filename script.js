@@ -11,8 +11,8 @@
 // 1. Storage Keys, Professor Pool & Default Schedules
 // ==========================================================================
 
-const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v6';
-const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v6';
+const STORAGE_KEY_PRESENTERS = 'thesis_sched_roster_v7';
+const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v7';
 
 const PROFESSORS = {
     internal: [
@@ -24,7 +24,9 @@ const PROFESSORS = {
     ],
     external: [
         { name: "외부 1", type: "external" },
-        { name: "외부 2", type: "external" }
+        { name: "외부 2", type: "external" },
+        { name: "외부 3", type: "external" },
+        { name: "외부 4", type: "external" }
     ]
 };
 
@@ -54,10 +56,11 @@ function getEndTime30Min(startTimeStr) {
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
-// 캘린더용 교수님 성(Initial) 추출 (김, 이, 권, 한, 정, 외1, 외2)
+// 캘린더용 교수님 성(Initial) 추출 (김, 이, 권, 한, 정, 외1~외4)
 function getProfInitial(pName) {
-    if (pName.includes('외부 1') || pName === '외1') return '외1';
-    if (pName.includes('외부 2') || pName === '외2') return '외2';
+    const extMatch = pName.match(/외부\s*([0-9]+)/);
+    if (extMatch) return `외${extMatch[1]}`;
+    if (pName.startsWith('외')) return pName;
     const clean = pName.replace(' 교수님', '').trim();
     return clean.charAt(0);
 }
@@ -259,6 +262,16 @@ function generateDefaultProfAvailability() {
         "외부 2": [
             "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
             "2026-12-04 14:00", "2026-12-04 14:30"
+        ],
+        "외부 3": [
+            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
+            "2026-11-27 14:00", "2026-11-27 14:30",
+            "2026-12-04 14:00", "2026-12-04 14:30"
+        ],
+        "외부 4": [
+            "2026-11-20 14:00", "2026-11-20 14:30",
+            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
+            "2026-12-04 14:00", "2026-12-04 14:30"
         ]
     };
 }
@@ -286,6 +299,12 @@ function loadState() {
         if (savedPresenters && savedProfAvail) {
             appState.presenters = JSON.parse(savedPresenters);
             appState.profAvailability = JSON.parse(savedProfAvail);
+            const defaults = getDefaultProfAvailability();
+            ALL_PROF_NAMES.forEach(pName => {
+                if (!appState.profAvailability[pName]) {
+                    appState.profAvailability[pName] = defaults[pName] || [];
+                }
+            });
         } else {
             resetToSampleData();
             return;
@@ -1635,7 +1654,7 @@ function renderCommitteeRows(category, existingReviewers = []) {
     const hint = document.getElementById('committeeRuleHint');
 
     if (isPhdGrad) {
-        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (외부 1, 외부 2) 총 5인을 지정하세요.`;
+        hint.innerHTML = `<span class="badge-tag-internal">내부 3인</span> (김수철, 이상옥, 권희홍, 한민수, 정용재) + <span class="badge-tag-external">외부 2인</span> (외부 1~4 중 2인) 총 5인을 지정하세요.`;
 
         const defaultRoles = [
             { role: "심사위원장", type: "internal" },

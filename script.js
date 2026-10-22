@@ -978,11 +978,12 @@ function renderProfCalendarHero() {
                 cell.title = `심사 오픈: ${tip}`;
             }
 
+            // 달력 칸에는 시간·이름만 (차수는 마우스를 올렸을 때 안내에만)
             contentHtml = confirmedHere.map(({ p: item, r }) => {
                 const roundText = getRequiredRounds(item).length > 1 ? ` ${r.round}차` : '';
                 return `
                 <div class="cal-slot-chip confirmed-chip" title="${item.name}${roundText} (${item.category}) ${r.time} 심사 확정" style="padding:2px 4px; font-size:11px; font-weight:700; margin-bottom:4px;">
-                    <span style="font-size:11px; opacity:0.85;">${r.time}</span> ${item.name}${roundText}
+                    <span style="font-size:11px; opacity:0.85;">${r.time}</span> ${item.name}
                 </div>
             `;
             }).join('');

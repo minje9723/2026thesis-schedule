@@ -444,7 +444,7 @@ a {
 
 .month-tab {
     flex: 1;
-    padding: 7px 18px;
+    padding: 7px 8px;
     border: none;
     border-radius: var(--radius-full);
     background: transparent;
@@ -459,6 +459,14 @@ a {
 .month-tab.active {
     background: var(--primary);
     color: #ffffff;
+}
+
+/* 달 옆 심사 구분: (1차 심사) / (최종, 주제심사) */
+.month-tab-sub {
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.85;
+    white-space: nowrap;
 }
 
 .prof-cal-legend {

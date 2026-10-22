@@ -1199,11 +1199,11 @@ function buildDateDetailRow(dateStr, period, draft) {
                 </select>
                 <select class="form-control slot-round-select" aria-label="예약 차수">${roundOptionsHtml(draftPresenter, draft.round)}</select>
                 </div>
-                <label class="slot-time-label">발표 시간
-                    <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input"
-                           data-period="${period.key}" placeholder="예: ${period.key === 'AM' ? '1000' : '1400'}" value="${draft.time}">
-                </label>
-                <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
+                <div class="slot-time-row">
+                    <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input" aria-label="발표 시간"
+                           data-period="${period.key}" placeholder="발표 시간 (예: ${period.key === 'AM' ? '1000' : '1400'})" value="${draft.time}">
+                    <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
+                </div>
             </td>
             <td class="center">
                 ${confirmedList ? `<div class="slot-confirmed-row">${confirmedList}</div>` : ''}

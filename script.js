@@ -1337,13 +1337,16 @@ function renderRosterTable(list) {
 
     tbody.innerHTML = list.map(p => {
         const requiredRounds = getRequiredRounds(p);
-        const showTag = requiredRounds.length > 1;
+        // 심사일자 앞 표시: 졸업발표는 1차·3차·최종, 박사주제는 '주제'
+        const isTopic = p.category === '박사주제발표';
+        const tagName = round => isTopic ? '주제' : roundName(p, round);
+        const showTag = requiredRounds.length > 1 || isTopic;
         const whenHtml = `<div class="roster-rounds">${requiredRounds.map(round => {
             const r = getReservations(p).find(x => x.round === round);
-            const tag = showTag ? `<span class="round-tag">${roundName(p, round)}</span>` : '';
+            const tag = showTag ? `<span class="round-tag">${tagName(round)}</span>` : '';
             if (!r) return `<div class="roster-round-line">${tag}<span class="presenter-list-pending">미정</span></div>`;
             const { m, d, dayName } = formatDateWithDay(r.date);
-            return `<div class="roster-round-line">${tag}<span class="status-badge confirmed">${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)} <button type="button" class="btn-roster-cancel badge-cancel-x" data-id="${p.id}" data-round="${round}" title="${roundName(p, round)} 예약 취소" aria-label="취소">✕</button></span></div>`;
+            return `<div class="roster-round-line">${tag}<span class="status-badge confirmed">${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)} <button type="button" class="btn-roster-cancel badge-cancel-x" data-id="${p.id}" data-round="${round}" title="${tagName(round)} 예약 취소" aria-label="취소">✕</button></span></div>`;
         }).join('')}</div>`;
 
         return `

@@ -15,8 +15,8 @@ const STORAGE_KEY_PROF_AVAIL = 'thesis_sched_prof_avail_v7';
 
 // 기본 심사위원 교수님 목록
 const BASE_PROFESSORS = {
-    internal: ["김수철 교수님", "이상옥 교수님", "권희홍 교수님", "한민수 교수님", "정용재 교수님"],
-    external: ["정광용 교수님", "조남철 교수님", "박정혜 교수님", "이광웅 교수님"]
+    internal: ["김수철 교수님", "이상옥 교수님", "권희홍 교수님", "한민수 교수님", "정용재 교수님", "클로드 교수님"],
+    external: ["정광용 교수님", "박정혜 교수님", "이광웅 교수님"]
 };
 
 // 실제로 쓰는 목록 = 기본 목록 + 발표자가 심사위원단에 직접 입력한 심사위원 (refreshProfessorPool에서 갱신)
@@ -243,8 +243,7 @@ const DEFAULT_PRESENTERS = [
             { id: "r_p1_1", name: "이상옥 교수님", role: "심사위원장", type: "internal" },
             { id: "r_p1_2", name: "김수철 교수님", role: "지도교수", type: "internal" },
             { id: "r_p1_3", name: "권희홍 교수님", role: "심사위원", type: "internal" },
-            { id: "r_p1_4", name: "정광용 교수님", role: "심사위원", type: "external" },
-            { id: "r_p1_5", name: "조남철 교수님", role: "심사위원", type: "external" }
+            { id: "r_p1_4", name: "정광용 교수님", role: "심사위원", type: "external" }
         ],
         confirmedSchedule: null
     },
@@ -961,8 +960,8 @@ function renderProfCalendarHero() {
                                 title="${p.label} ${p.range} · ${on ? '가능 (누르면 해제)' : '누르면 가능'}">${on ? '✓ ' : ''}${p.label}</button>`;
             }).join('')}</div>`;
         } else {
-            // 표기 순서: 김 권 이 한 정 (그 외 성은 뒤, 같은 성은 기존 목록 순서 유지)
-            const INITIAL_ORDER = ['김', '권', '이', '한', '정', '조', '박'];
+            // 표기 순서: 김 권 이 한 정 클 박 (그 외 성은 뒤, 같은 성은 기존 목록 순서 유지)
+            const INITIAL_ORDER = ['김', '권', '이', '한', '정', '클', '박'];
             const initialRank = n => { const i = INITIAL_ORDER.indexOf(getProfInitial(n)); return i < 0 ? INITIAL_ORDER.length : i; };
             const availableProfs = getProfessorsAvailableOnDate(dateStr)
                 .map((n, idx) => ({ n, idx }))

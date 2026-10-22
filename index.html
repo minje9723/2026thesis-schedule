@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.11">
+    <link rel="stylesheet" href="style.css?v=20261022.15">
 </head>
 
 <body>
@@ -124,7 +124,20 @@
                     <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card highlight-card">
-                    <div class="stat-number text-confirmed" id="statConfirmedCount">-</div>
+                    <div class="stat-rounds">
+                        <div class="stat-round">
+                            <div class="stat-number text-confirmed" id="statRound1">-</div>
+                            <div class="stat-round-label">1차</div>
+                        </div>
+                        <div class="stat-round">
+                            <div class="stat-number text-confirmed" id="statRound3">-</div>
+                            <div class="stat-round-label">3차</div>
+                        </div>
+                        <div class="stat-round">
+                            <div class="stat-number text-confirmed" id="statRound5">-</div>
+                            <div class="stat-round-label">5차</div>
+                        </div>
+                    </div>
                     <div class="stat-label">심사 확정 완료</div>
                 </div>
             </section>
@@ -510,8 +523,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.11"></script>
-    <script src="script.js?v=20261022.11"></script>
+    <script src="firebase-config.js?v=20261022.15"></script>
+    <script src="script.js?v=20261022.15"></script>
 </body>
 
 </html>

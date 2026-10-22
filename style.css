@@ -645,6 +645,47 @@ a {
 .stats-card.highlight-card {
     background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
     border-color: var(--confirmed-border);
+    min-width: 220px;
+}
+
+.stat-rounds {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.stat-round {
+    text-align: center;
+    padding: 0 6px;
+}
+
+.stat-round + .stat-round {
+    border-left: 1px solid var(--confirmed-border);
+}
+
+.stat-round .stat-number {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+.stat-round-total {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-left: 1px;
+}
+
+.stat-round-label {
+    margin-top: 2px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.stats-card.highlight-card > .stat-label {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--confirmed-border);
+    text-align: center;
 }
 
 .stats-card.is-clickable {
@@ -832,6 +873,38 @@ a {
     font-size: 0.8rem;
     color: var(--text-muted);
 }
+
+.roster-table td.roster-when {
+    text-align: left;
+}
+
+.roster-rounds {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.roster-round-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.round-tag {
+    flex: 0 0 auto;
+    min-width: 34px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    border: 1px solid var(--surface-border-strong);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+}
+
 
 @media (max-width: 640px) {
     .roster-table-card {
@@ -1906,9 +1979,28 @@ a {
     border: 1px solid #fcd34d;
 }
 
-.slot-presenter-select {
+.slot-presenter-select,
+.slot-round-select {
     font-size: 0.8rem;
     padding: 5px 8px;
+}
+
+.slot-select-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.slot-select-row .slot-presenter-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.slot-select-row .slot-round-select {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 64px;
+    margin-top: 0;
 }
 
 .slot-candidate-count {

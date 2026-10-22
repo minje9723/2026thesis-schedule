@@ -979,8 +979,8 @@ function renderProfCalendarHero() {
             }
 
             contentHtml = confirmedHere.map(item => `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:9px; font-weight:700; margin-bottom:4px;">
-                    ${item.name} <span style="font-size:9px; opacity:0.85;">(${item.confirmedSchedule.time})</span>
+                <div class="cal-slot-chip confirmed-chip" title="${item.name} (${item.category}) ${item.confirmedSchedule.time} 심사 확정" style="padding:2px 4px; font-size:11px; font-weight:700; margin-bottom:4px;">
+                    <span style="font-size:11px; opacity:0.85;">${item.confirmedSchedule.time}</span> ${item.name}
                 </div>
             `).join('');
 
@@ -1095,7 +1095,7 @@ function openDateProfDetailModal(dateStr) {
                     <th style="width: 95px;" class="center">시간대</th>
                     <th>참석 가능 교수님 (눌러서 지정)</th>
                     <th style="width: 250px;">발표자 선택 · 발표 시간 입력</th>
-                    <th style="width: 190px;" class="center">확정 / 취소</th>
+                    <th style="width: 190px;" class="center">예약 완료</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -1136,9 +1136,7 @@ function refreshDateDetailRows() {
         resBox.innerHTML = `<h4 class="form-section-title" style="margin:0 0 8px;">✅ 심사 가능 발표자</h4>${availHtml}`
             + `<h4 class="form-section-title" style="margin:14px 0 8px;">📌 예약 내역 (${reserved.length}건)</h4>`
             + (reserved.length
-                ? reserved.map(p => `<div class="slot-confirmed-item">
-                        <span class="status-badge confirmed">${p.confirmedSchedule.time}~${getEndTime30Min(p.confirmedSchedule.time)} ${p.name}</span>
-                    </div>`).join('')
+                ? `<div class="slot-confirmed-row">${reserved.map(p => `<span class="status-badge confirmed">${p.confirmedSchedule.time}~${getEndTime30Min(p.confirmedSchedule.time)} ${p.name} <button type="button" class="btn-modal-cancel-slot badge-cancel-x" data-id="${p.id}" title="예약 취소" aria-label="취소">✕</button></span>`).join('')}</div>`
                 : '<div class="presenter-list-pending">이 날짜에 예약된 발표가 없습니다.</div>');
     }
 }
@@ -1171,10 +1169,10 @@ function buildDateDetailRow(dateStr, period, draft) {
     };
 
     const confirmedList = confirmedHere.map(p => `
-        <div class="slot-confirmed-item">
-            <span class="status-badge confirmed">${p.confirmedSchedule.time} ${p.name}</span>
-            <button type="button" class="btn btn-sm btn-danger btn-modal-cancel-slot" data-id="${p.id}">취소</button>
-        </div>
+        <span class="status-badge confirmed">
+            ${p.confirmedSchedule.time} ${p.name}
+            <button type="button" class="btn-modal-cancel-slot badge-cancel-x" data-id="${p.id}" title="예약 취소" aria-label="취소">✕</button>
+        </span>
     `).join('');
 
     return `
@@ -1193,11 +1191,11 @@ function buildDateDetailRow(dateStr, period, draft) {
                 <label class="slot-time-label">발표 시간
                     <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input"
                            data-period="${period.key}" placeholder="예: ${period.key === 'AM' ? '1000' : '1400'}" value="${draft.time}">
+                    <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
                 </label>
             </td>
             <td class="center">
-                <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
-                ${confirmedList}
+                ${confirmedList ? `<div class="slot-confirmed-row">${confirmedList}</div>` : ''}
             </td>
         </tr>
     `;
@@ -1213,9 +1211,21 @@ const CATEGORY_PILLS = {
     '석사졸업발표': { label: '석사 졸업', className: 'pill-ms-grad' }
 };
 
-// [전체 발표자] 카드를 누르면 나오는 발표자 명단과 심사 일자 (구분별 순서)
-function renderPresenterList() {
-    const presenters = Object.keys(CATEGORY_PILLS).flatMap(cat => appState.presenters.filter(p => p.category === cat));
+// [전체 발표자] 및 구분별(박사 졸업, 박사 주제, 석사 졸업) 카드를 누르면 나오는 발표자 명단과 심사 일자
+function renderPresenterList(categoryFilter = 'all') {
+    let presenters;
+    let title = '전체 발표자 명단 및 심사 일자';
+    if (categoryFilter && categoryFilter !== 'all') {
+        presenters = appState.presenters.filter(p => p.category === categoryFilter);
+        const label = CATEGORY_PILLS[categoryFilter] ? CATEGORY_PILLS[categoryFilter].label : categoryFilter;
+        title = `${label} 발표자 명단 및 심사 일자`;
+    } else {
+        presenters = Object.keys(CATEGORY_PILLS).flatMap(cat => appState.presenters.filter(p => p.category === cat));
+    }
+
+    const titleEl = document.getElementById('modalPresenterListTitle');
+    if (titleEl) titleEl.textContent = title;
+
     const confirmedCount = presenters.filter(p => p.confirmedSchedule).length;
     document.getElementById('presenterListSummary').textContent =
         `총 ${presenters.length}명 · 심사 일자 확정 ${confirmedCount}명 · 미정 ${presenters.length - confirmedCount}명`;
@@ -1246,8 +1256,8 @@ function renderPresenterList() {
     `;
 }
 
-function openPresenterListModal() {
-    renderPresenterList();
+function openPresenterListModal(categoryFilter = 'all') {
+    renderPresenterList(categoryFilter);
     document.getElementById('modalPresenterList').classList.add('active');
 }
 
@@ -1265,79 +1275,42 @@ function renderPresentersSection() {
     document.getElementById('statMsCount').textContent = msList.length;
     document.getElementById('statConfirmedCount').textContent = confirmedCount;
 
-    renderRosterGrid('rosterPhdGrad', phdGradList);
-    renderRosterGrid('rosterPhdProp', phdPropList);
-    renderRosterGrid('rosterMsGrad', msList);
+    renderRosterTable(presenters);
 }
 
-function renderRosterGrid(containerId, list) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
+function renderRosterTable(list) {
+    const tbody = document.getElementById('rosterTableBody');
+    if (!tbody) return;
 
-    list.forEach(p => {
-        const reviewers = p.reviewers || [];
-        const isConfirmed = !!p.confirmedSchedule;
-        const totalGoldenSlots = findAllMatchSlots(p).length;
-
-        const card = document.createElement('div');
-        card.className = `roster-card ${isConfirmed ? 'is-confirmed-card' : ''}`;
-
-        let statusBadgeHtml = '';
-        if (isConfirmed) {
-            const cs = p.confirmedSchedule;
-            statusBadgeHtml = `
-                <span class="status-badge confirmed">${cs.date.slice(5)} ${cs.time} 확정</span>
-                <button class="btn btn-sm btn-danger btn-roster-cancel" data-id="${p.id}" title="확정을 취소합니다">취소</button>
-            `;
-        } else if (reviewers.length === 0) {
-            statusBadgeHtml = `<span class="status-badge need-committee">심사위원 선택 필요</span>`;
-        } else if (totalGoldenSlots > 0) {
-            statusBadgeHtml = `<span class="status-badge match-found">✨ 심사위원 전원 가능 시간대 ${totalGoldenSlots}개</span>`;
-        } else {
-            statusBadgeHtml = `<span class="status-badge">교수님 일정 취합중</span>`;
+    tbody.innerHTML = list.map(p => {
+        const pill = CATEGORY_PILLS[p.category] || { label: p.category.replace('발표', ''), className: 'pill-phd-grad' };
+        const cs = p.confirmedSchedule;
+        let whenHtml = '<span class="presenter-list-pending">미정</span>';
+        if (cs) {
+            const { m, d, dayName } = formatDateWithDay(cs.date);
+            whenHtml = `<span class="status-badge confirmed">${Number(m)}월 ${Number(d)}일 (${dayName}) ${cs.time}~${getEndTime30Min(cs.time)} <button type="button" class="btn-roster-cancel badge-cancel-x" data-id="${p.id}" title="확정 취소" aria-label="취소">✕</button></span>`;
         }
 
-        // 항목(역할+이름) 단위로만 줄바꿈되도록 각각 묶어서 표시
-        const reviewerListHtml = reviewers.length > 0
-            ? reviewers.map(r => `<span class="roster-reviewer"><span class="roster-reviewer-role">${r.role}</span>${getProfShortName(r.name)}</span>`).join('')
-            : '<span class="roster-reviewer-empty">미등록</span>';
-
-        card.innerHTML = `
-            <div class="roster-card-header">
-                <h4 class="roster-student-name">${p.name}</h4>
-            </div>
-
-            <div class="roster-status-row">${statusBadgeHtml}</div>
-
-            <div class="roster-reviewer-preview">
-                <div class="roster-reviewer-title">심사위원단 ${reviewers.length}인</div>
-                <div class="roster-reviewer-list">${reviewerListHtml}</div>
-            </div>
-
-            <div class="roster-card-actions">
-                <button class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
-                    심사위원 선택
-                </button>
-                ${SHOW_ROSTER_COORDINATION_BUTTON ? `
-                <button class="btn btn-sm btn-primary btn-jump-coordination" data-id="${p.id}">
-                    일정 조율/확정 →
-                </button>` : ''}
-            </div>
+        return `
+            <tr class="${cs ? 'is-confirmed' : ''}">
+                <td>
+                    <div class="roster-presenter-cell">
+                        <span class="roster-student-name">${p.name}</span>
+                    </div>
+                </td>
+                <td class="center">
+                    <button type="button" class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
+                        구성
+                    </button>
+                </td>
+                <td class="center">
+                    ${whenHtml}
+                </td>
+            </tr>
         `;
+    }).join('');
 
-        container.appendChild(card);
-    });
-
-    container.querySelectorAll('.btn-roster-cancel').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.getAttribute('data-id');
-            const student = appState.presenters.find(p => p.id === id);
-            if (student) cancelConfirmationWithPrompt(student);
-        });
-    });
-
-    container.querySelectorAll('.btn-manage-committee').forEach(btn => {
+    tbody.querySelectorAll('.btn-manage-committee').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.getAttribute('data-id');
@@ -1346,10 +1319,14 @@ function renderRosterGrid(containerId, list) {
         });
     });
 
-    container.querySelectorAll('.btn-jump-coordination').forEach(btn => {
-        btn.addEventListener('click', () => {
+    tbody.querySelectorAll('.btn-roster-cancel').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const id = btn.getAttribute('data-id');
-            navigateToPresenter(id);
+            const target = appState.presenters.find(p => p.id === id);
+            if (target && cancelConfirmationWithPrompt(target)) {
+                renderAll();
+            }
         });
     });
 }
@@ -2193,15 +2170,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (normalized) e.target.value = normalized;
     });
 
-    // [전체 발표자] 카드: 발표자 명단과 심사 일자
-    const presenterListCard = document.getElementById('btnPresenterList');
-    presenterListCard.addEventListener('click', openPresenterListModal);
-    presenterListCard.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openPresenterListModal();
-        }
-    });
+    // [전체 발표자] 및 구분별(박사 졸업, 박사 주제, 석사 졸업) 카드: 발표자 명단과 심사 일자
+    const bindPresenterListCard = (id, cat) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', () => openPresenterListModal(cat));
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openPresenterListModal(cat);
+            }
+        });
+    };
+
+    bindPresenterListCard('btnPresenterList', 'all');
+    bindPresenterListCard('btnStatPhdGrad', '박사졸업발표');
+    bindPresenterListCard('btnStatPhdProp', '박사주제발표');
+    bindPresenterListCard('btnStatMs', '석사졸업발표');
 
     // 교수님 가능 날짜 선택 모드 종료
     document.getElementById('btnProfPickAll').addEventListener('click', () => {

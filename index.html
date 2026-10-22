@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.6">
+    <link rel="stylesheet" href="style.css?v=20261022.10">
 </head>
 
 <body>
@@ -99,22 +99,29 @@
 
             <!-- SECTOR 2: SUMMARY STATS -->
             <section class="overview-stats-banner" style="margin-top: 36px;">
-                <div class="stats-card is-clickable" id="btnPresenterList" role="button" tabindex="0" title="발표자 명단과 심사 일자 보기">
+                <div class="stats-card is-clickable" id="btnPresenterList" role="button" tabindex="0"
+                    title="전체 발표자 명단과 심사 일자 보기">
                     <div class="stat-number" id="statTotalCount">-</div>
-                    <div class="stat-label">전체 발표자 (각 30분)</div>
+                    <div class="stat-label">전체 발표자</div>
                     <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
-                <div class="stats-card">
+                <div class="stats-card is-clickable" id="btnStatPhdGrad" role="button" tabindex="0"
+                    title="박사 졸업 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-phd" id="statPhdGradCount">-</div>
-                    <div class="stat-label">박사 졸업 (내부3+외부2)</div>
+                    <div class="stat-label">박사 졸업</div>
+                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
-                <div class="stats-card">
+                <div class="stats-card is-clickable" id="btnStatPhdProp" role="button" tabindex="0"
+                    title="박사 주제 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-prop" id="statPhdPropCount">-</div>
-                    <div class="stat-label">박사 주제 (내·외부 자유)</div>
+                    <div class="stat-label">박사 주제</div>
+                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
-                <div class="stats-card">
+                <div class="stats-card is-clickable" id="btnStatMs" role="button" tabindex="0"
+                    title="석사 졸업 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-ms" id="statMsCount">-</div>
-                    <div class="stat-label">석사 졸업 (내·외부 자유)</div>
+                    <div class="stat-label">석사 졸업</div>
+                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card highlight-card">
                     <div class="stat-number text-confirmed" id="statConfirmedCount">-</div>
@@ -122,49 +129,25 @@
                 </div>
             </section>
 
-            <!-- SECTOR 3: 10 PRESENTER ROSTER -->
+            <!-- SECTOR 3: 10 PRESENTER ROSTER (3-COLUMN TABLE) -->
             <section class="presenters-section-group">
-                <div class="section-title-row" style="margin-bottom: 16px;">
+                <div class="section-title-row" style="margin-bottom: 8px;">
                     <div>
-                        <h3 style="font-size: 1.25rem; font-weight: 700;">👥 발표자별 심사위원단 및 일정 현황</h3>
-                        <p class="section-desc">발표자별 심사위원단 구성과 일정 확정 현황입니다. 일정 확정은 위 캘린더에서 날짜를 눌러 진행합니다.</p>
+                        <h3 style="font-size: 1.15rem; font-weight: 700;">👥 발표자별 심사위원단</h3>
                     </div>
                 </div>
 
-                <!-- Category 1: 박사 졸업발표 -->
-                <div class="category-section">
-                    <div class="category-header">
-                        <div class="cat-title-wrap">
-                            <span class="cat-pill pill-phd-grad">박사 졸업발표</span>
-                            <h3>학위청구논문 심사</h3>
-                        </div>
-                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부 3인 + 외부 2인 (총 5인 심사)</strong></span>
-                    </div>
-                    <div class="presenter-roster-grid" id="rosterPhdGrad"></div>
-                </div>
-
-                <!-- Category 2: 박사 주제발표 -->
-                <div class="category-section">
-                    <div class="category-header">
-                        <div class="cat-title-wrap">
-                            <span class="cat-pill pill-phd-prop">박사 주제발표</span>
-                            <h3>연구계획/주제발표</h3>
-                        </div>
-                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부·외부 심사위원 자유 구성</strong></span>
-                    </div>
-                    <div class="presenter-roster-grid" id="rosterPhdProp"></div>
-                </div>
-
-                <!-- Category 3: 석사 졸업발표 -->
-                <div class="category-section">
-                    <div class="category-header">
-                        <div class="cat-title-wrap">
-                            <span class="cat-pill pill-ms-grad">석사 졸업발표</span>
-                            <h3>석사학위 논문 심사</h3>
-                        </div>
-                        <span class="cat-desc"><strong>30분 배정</strong> · <strong>내부·외부 심사위원 자유 구성</strong></span>
-                    </div>
-                    <div class="presenter-roster-grid" id="rosterMsGrad"></div>
+                <div class="roster-table-card">
+                    <table class="roster-table">
+                        <thead>
+                            <tr>
+                                <th>발표자</th>
+                                <th class="center" style="width: 100px;">심사위원 구성</th>
+                                <th class="center" style="width: 240px;">심사일자</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosterTableBody"></tbody>
+                    </table>
                 </div>
             </section>
         </main>
@@ -347,7 +330,6 @@
             <div class="modal-header">
                 <div>
                     <h3 id="dateProfDetailTitle">심사 예약</h3>
-                    <p class="modal-subtitle">오전/오후별로 참석 가능한 교수님을 지정하고, 발표자와 발표 시간을 입력해 확정하거나 기존 확정을 취소할 수 있습니다.</p>
                 </div>
                 <button class="modal-close" data-close="modalDateProfDetail">&times;</button>
             </div>
@@ -417,7 +399,8 @@
                     </div>
                     <div class="reviewer-add-buttons">
                         <button type="button" id="btnAddReviewerRow" class="btn btn-sm btn-outline">+ 심사위원 추가</button>
-                        <button type="button" id="btnAddCustomReviewer" class="btn btn-sm btn-outline">+ 목록에 없는 심사위원 직접 입력</button>
+                        <button type="button" id="btnAddCustomReviewer" class="btn btn-sm btn-outline">+ 목록에 없는 심사위원 직접
+                            입력</button>
                     </div>
                 </div>
 
@@ -451,7 +434,8 @@
                     </div>
                     <div class="confirm-info-row">
                         <label for="confirmModalTime">발표 시간:</label>
-                        <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" id="confirmModalTime" class="form-control" placeholder="예: 1400">
+                        <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" id="confirmModalTime"
+                            class="form-control" placeholder="예: 1400">
                     </div>
                     <div class="confirm-info-row">
                         <span>배정 시간:</span>
@@ -479,7 +463,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-header">
                 <div>
-                    <h3>전체 발표자 명단 및 심사 일자</h3>
+                    <h3 id="modalPresenterListTitle">전체 발표자 명단 및 심사 일자</h3>
                     <p class="modal-subtitle" id="presenterListSummary"></p>
                 </div>
                 <button class="modal-close" data-close="modalPresenterList">&times;</button>
@@ -513,7 +497,8 @@
 
     <!-- 일정 확정 축하 팝업 (확정한 사람 화면에만, 색종이는 script.js에서 생성) -->
     <div class="celebrate-overlay" id="celebrateOverlay" hidden>
-        <div class="celebrate-card" role="alertdialog" aria-labelledby="celebrateTitle" aria-describedby="celebrateDetail">
+        <div class="celebrate-card" role="alertdialog" aria-labelledby="celebrateTitle"
+            aria-describedby="celebrateDetail">
             <div class="celebrate-emoji" aria-hidden="true">🎉</div>
             <h3 id="celebrateTitle">축하합니다!</h3>
             <p class="celebrate-message">예약에 성공하셨습니다</p>
@@ -528,8 +513,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.6"></script>
-    <script src="script.js?v=20261022.6"></script>
+    <script src="firebase-config.js?v=20261022.10"></script>
+    <script src="script.js?v=20261022.10"></script>
 </body>
 
 </html>

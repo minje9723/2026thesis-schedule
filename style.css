@@ -503,20 +503,20 @@ a {
 
 /* 교수님 가능 날짜 선택 모드 */
 .prof-pick-banner {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
     margin-bottom: 12px;
 }
 
+/* [N월 전체 가능] | [선택 완료]: 한 줄에 반반 */
 .prof-pick-actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 
 .prof-pick-actions .btn {
-    padding: 9px 18px;
+    width: 100%;
+    min-width: 0;
+    padding: 9px 12px;
     border-radius: 999px;
     font-size: 0.85rem;
     font-weight: 700;

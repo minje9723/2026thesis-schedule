@@ -690,13 +690,6 @@ a {
     border-color: var(--primary-border);
 }
 
-.stat-link-hint {
-    margin-top: 4px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--primary);
-}
-
 /* 전체 발표자 명단 창 */
 .presenter-list-table {
     width: 100%;
@@ -737,12 +730,6 @@ a {
 .presenter-list-name {
     font-weight: 700;
     white-space: nowrap;
-}
-
-.presenter-list-location {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
 }
 
 .presenter-list-pending {
@@ -977,7 +964,7 @@ a {
         padding: 3px 8px;
     }
 
-    /* 발표자 명단 창: 표를 화면 폭에 맞추고 심사 일시는 줄바꿈 (장소는 다음 줄) */
+    /* 발표자 명단 창: 표를 화면 폭에 맞추고 심사 일시는 줄바꿈 */
     .presenter-list-table {
         min-width: 0;
     }
@@ -993,9 +980,6 @@ a {
     .presenter-list-table .roster-round-line strong {
         flex: 1 1 0;
         min-width: 0;
-    }
-    .presenter-list-table .presenter-list-location {
-        flex-basis: 100%;
     }
 }
 
@@ -1919,9 +1903,17 @@ a {
 }
 
 .slot-time-input {
+    flex: 1 1 auto;
+    min-width: 0;
     font-size: 0.8rem;
     padding: 4px 8px;
-    max-width: 130px;
+}
+
+/* 확정 버튼: 칸 너비에 맞춰 가로로 가득 */
+.btn-modal-confirm-slot {
+    display: flex;
+    width: 100%;
+    margin-top: 8px;
 }
 
 /* 예약 완료 명단: 가로로 나열 */
@@ -1930,11 +1922,6 @@ a {
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 8px;
-}
-
-.slot-time-label .btn-modal-confirm-slot {
-    margin-left: 4px;
-    white-space: nowrap;
 }
 
 /* 휴대폰: 가로 스크롤 대신 시간대마다 카드 형태로 세로 배치 */
@@ -2680,8 +2667,8 @@ html.modal-open {
         font-size: 8px;
     }
     .btn-modal-confirm-slot {
-        padding: 5px 8px !important;
-        font-size: 0.76rem !important;
+        padding: 7px 8px !important;
+        font-size: 0.8rem !important;
     }
     .prof-filter-toolbar {
         padding: 8px 10px;

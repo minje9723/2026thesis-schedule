@@ -1202,8 +1202,8 @@ function buildDateDetailRow(dateStr, period, draft) {
                 <label class="slot-time-label">발표 시간
                     <input type="text" inputmode="numeric" autocomplete="off" maxlength="8" class="form-control slot-time-input"
                            data-period="${period.key}" placeholder="예: ${period.key === 'AM' ? '1000' : '1400'}" value="${draft.time}">
-                    <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
                 </label>
+                <button type="button" class="btn btn-sm btn-success btn-modal-confirm-slot">확정</button>
             </td>
             <td class="center">
                 ${confirmedList ? `<div class="slot-confirmed-row">${confirmedList}</div>` : ''}
@@ -1250,8 +1250,7 @@ function renderPresenterList(categoryFilter = 'all') {
             const tag = showTag ? `<span class="round-tag">${round}차</span>` : '';
             if (!r) return `<div class="roster-round-line">${tag}<span class="presenter-list-pending">미정</span></div>`;
             const { m, d, dayName } = formatDateWithDay(r.date);
-            return `<div class="roster-round-line">${tag}<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)}</strong>`
-                + (r.location ? `<span class="presenter-list-location">${r.location}</span>` : '') + '</div>';
+            return `<div class="roster-round-line">${tag}<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)}</strong></div>`;
         }).join('');
         return `
             <tr class="${isFullyReserved(p) ? 'is-confirmed' : ''}">
@@ -1298,7 +1297,8 @@ function renderPresentersSection() {
         if (el) el.innerHTML = `${done}<span class="stat-round-total">/${needed.length}</span>`;
     });
 
-    renderRosterTable(presenters);
+    // 발표자별 심사위원단: 박사졸업 → 석사졸업 → 박사주제 순
+    renderRosterTable([...phdGradList, ...msList, ...phdPropList]);
 }
 
 // 심사위원 구성 버튼 아이콘 (지정됨: 사람들, 미지정: 더하기)

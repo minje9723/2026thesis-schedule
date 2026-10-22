@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.20">
+    <link rel="stylesheet" href="style.css?v=20261022.21">
 </head>
 
 <body>
@@ -102,25 +102,21 @@
                     title="전체 발표자 명단과 심사 일자 보기">
                     <div class="stat-number" id="statTotalCount">-</div>
                     <div class="stat-label">전체 발표자</div>
-                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card is-clickable" id="btnStatPhdGrad" role="button" tabindex="0"
                     title="박사 졸업 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-phd" id="statPhdGradCount">-</div>
                     <div class="stat-label">박사 졸업</div>
-                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card is-clickable" id="btnStatPhdProp" role="button" tabindex="0"
                     title="박사 주제 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-prop" id="statPhdPropCount">-</div>
                     <div class="stat-label">박사 주제</div>
-                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card is-clickable" id="btnStatMs" role="button" tabindex="0"
                     title="석사 졸업 발표자 명단과 심사 일자 보기">
                     <div class="stat-number text-ms" id="statMsCount">-</div>
                     <div class="stat-label">석사 졸업</div>
-                    <div class="stat-link-hint">명단·심사 일자 보기 ›</div>
                 </div>
                 <div class="stats-card highlight-card">
                     <div class="stat-rounds">
@@ -521,8 +517,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.20"></script>
-    <script src="script.js?v=20261022.20"></script>
+    <script src="firebase-config.js?v=20261022.21"></script>
+    <script src="script.js?v=20261022.21"></script>
 </body>
 
 </html>

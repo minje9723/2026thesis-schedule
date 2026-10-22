@@ -1129,6 +1129,7 @@ function refreshDateDetailRows() {
             .sort((a, b) => a.confirmedSchedule.time.localeCompare(b.confirmedSchedule.time));
         const availHtml = PERIODS.map(per => {
             const names = appState.presenters
+                .filter(p => !(p.confirmedSchedule && p.confirmedSchedule.date === dateStr))
                 .filter(p => analyzeSlotForStudent(p, `${dateStr} ${per.key}`).isAllMatch)
                 .map(p => p.name);
             return `<div class="slot-candidate-count ${names.length ? 'has-candidates' : ''}"><strong>${per.label}</strong> ✓ 심사 가능: ${names.length ? names.join(', ') : '없음'}</div>`;
@@ -1768,7 +1769,7 @@ function openPresenterModal(presenterToEdit) {
     const modal = document.getElementById('modalPresenter');
     const title = document.getElementById('modalPresenterTitle');
 
-    title.textContent = `${presenterToEdit.name} 심사위원단 및 발표 정보 설정`;
+    title.textContent = `${presenterToEdit.name} 심사위원 교수님 선택`;
     document.getElementById('editPresenterId').value = presenterToEdit.id;
     document.getElementById('inputPresenterName').value = presenterToEdit.name;
     document.getElementById('inputCategory').value = presenterToEdit.category;

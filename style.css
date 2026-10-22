@@ -748,24 +748,35 @@ a {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
-    max-width: 580px;
+    width: 100%;
+    max-width: 960px;
 }
 
 .roster-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
 }
+
+.roster-table th:nth-child(1) { width: 24%; }
+.roster-table th:nth-child(2) { width: 20%; }
+.roster-table th:nth-child(3) { width: 56%; }
 
 .roster-table th,
 .roster-table td {
-    padding: 7px 12px;
+    padding: 8px 20px;
     border-bottom: 1px solid var(--surface-border);
     vertical-align: middle;
 }
 
+.roster-table td.center,
+.roster-table th.center {
+    white-space: nowrap;
+}
+
 .roster-table th {
-    padding: 8px 12px;
+    padding: 9px 20px;
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--text-secondary);
@@ -814,6 +825,7 @@ a {
     font-size: 0.78rem;
     padding: 2px 8px;
     gap: 4px;
+    white-space: nowrap;
 }
 
 .roster-table .presenter-list-pending {
@@ -823,16 +835,44 @@ a {
 
 @media (max-width: 640px) {
     .roster-table-card {
+        width: 100%;
         max-width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
-    .roster-table {
-        min-width: 440px;
+    .roster-table,
+    .roster-table tbody {
+        display: block;
+        width: 100%;
     }
-    .roster-table th,
-    .roster-table td {
-        padding: 6px 8px;
+    .roster-table thead {
+        display: none;
+    }
+    .roster-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 6px 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--surface-border);
+    }
+    .roster-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    .roster-table tbody tr td {
+        display: block;
+        padding: 0;
+        border-bottom: none;
+        background: transparent !important;
+        text-align: left;
+    }
+    .roster-table tbody tr.is-confirmed {
+        background: #faf8ff;
+    }
+    .roster-table tbody tr td:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+    .roster-table .status-badge.confirmed {
+        font-size: 0.78rem;
+        padding: 3px 8px;
     }
 }
 

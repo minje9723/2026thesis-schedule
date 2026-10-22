@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.10">
+    <link rel="stylesheet" href="style.css?v=20261022.11">
 </head>
 
 <body>
@@ -142,8 +142,8 @@
                         <thead>
                             <tr>
                                 <th>발표자</th>
-                                <th class="center" style="width: 100px;">심사위원 구성</th>
-                                <th class="center" style="width: 240px;">심사일자</th>
+                                <th class="center">심사위원 구성</th>
+                                <th class="center">심사일자</th>
                             </tr>
                         </thead>
                         <tbody id="rosterTableBody"></tbody>
@@ -347,14 +347,15 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-header">
                 <div>
-                    <h3 id="modalPresenterTitle">심사위원단 구성 및 발표 정보 설정</h3>
-                    <p class="modal-subtitle" id="modalPresenterSubtitle">규정: 박사졸업 5인(내부3+외부2) · 석사/박사주제 내·외부 자유 구성</p>
+                    <h3 id="modalPresenterTitle">심사위원 교수님 선택</h3>
+                    <p class="modal-subtitle" id="modalPresenterSubtitle" hidden></p>
                 </div>
                 <button class="modal-close" data-close="modalPresenter">&times;</button>
             </div>
             <form id="formPresenter" class="modal-body">
                 <input type="hidden" id="editPresenterId" value="">
 
+                <div hidden>
                 <h4 class="form-section-title">1. 발표 기본 정보 (인당 30분 배정)</h4>
                 <div class="form-row grid-3">
                     <div class="form-group">
@@ -387,15 +388,11 @@
                         <input type="text" id="inputLocation" placeholder="예: 세미나실 1호" class="form-control">
                     </div>
                 </div>
-
-                <hr class="divider">
+                </div>
 
                 <div class="reviewer-header-row">
                     <div>
-                        <h4 class="form-section-title">2. 심사위원 교수님 선택</h4>
-                        <p class="form-hint" id="committeeRuleHint">
-                            ※ 등록된 교수님 풀에서 드롭다운으로 간편하게 선택하실 수 있습니다.
-                        </p>
+                        <p class="form-hint" id="committeeRuleHint" hidden></p>
                     </div>
                     <div class="reviewer-add-buttons">
                         <button type="button" id="btnAddReviewerRow" class="btn btn-sm btn-outline">+ 심사위원 추가</button>
@@ -513,8 +510,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.10"></script>
-    <script src="script.js?v=20261022.10"></script>
+    <script src="firebase-config.js?v=20261022.11"></script>
+    <script src="script.js?v=20261022.11"></script>
 </body>
 
 </html>

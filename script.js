@@ -2099,6 +2099,14 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
+// 팝업(모달·축하 창)이 하나라도 열려 있으면 뒤 화면이 스크롤되지 않도록 고정 (style.css의 html.modal-open)
+// 여는·닫는 경로가 여러 곳이라 팝업 요소의 class·hidden 변화를 지켜보며 한 곳에서 처리
+function updateScrollLock() {
+    const anyOpen = !!document.querySelector('.modal-backdrop.active')
+        || !document.getElementById('celebrateOverlay').hidden;
+    document.documentElement.classList.toggle('modal-open', anyOpen);
+}
+
 let toastTimeout = null;
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -2356,5 +2364,10 @@ document.addEventListener('DOMContentLoaded', () => {
         backdrop.addEventListener('click', (e) => {
             if (e.target === backdrop) backdrop.classList.remove('active');
         });
+    });
+
+    const scrollLockObserver = new MutationObserver(updateScrollLock);
+    document.querySelectorAll('.modal-backdrop, #celebrateOverlay').forEach(el => {
+        scrollLockObserver.observe(el, { attributes: true, attributeFilter: ['class', 'hidden'] });
     });
 });

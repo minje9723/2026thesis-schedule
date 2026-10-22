@@ -2059,6 +2059,23 @@ a {
     animation: fadeIn 0.2s ease;
 }
 
+/* 팝업이 열려 있는 동안 뒤 화면 고정 (html.modal-open은 script.js의 updateScrollLock에서 붙임) */
+html.modal-open,
+html.modal-open body {
+    overflow: hidden;
+}
+
+html.modal-open {
+    scrollbar-gutter: stable;   /* 스크롤바가 사라지면서 화면이 옆으로 밀리지 않도록 */
+}
+
+/* 팝업 안쪽 스크롤이 끝에 닿아도 뒤 화면으로 이어서 스크롤되지 않도록 */
+.modal-backdrop,
+.modal-body,
+.celebrate-overlay {
+    overscroll-behavior: contain;
+}
+
 .modal-dialog {
     background: #ffffff;
     border-radius: var(--radius-lg);

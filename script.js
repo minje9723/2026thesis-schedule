@@ -1286,11 +1286,15 @@ function renderPresentersSection() {
     document.getElementById('statPhdGradCount').textContent = phdGradList.length;
     document.getElementById('statPhdPropCount').textContent = phdPropList.length;
     document.getElementById('statMsCount').textContent = msList.length;
-    // 심사 확정 완료: 차수별(1·3·5차) "예약한 발표자 / 해당 차수가 필요한 발표자"
-    [1, 3, 5].forEach(round => {
-        const needed = presenters.filter(p => getRequiredRounds(p).includes(round));
+    // 심사 확정 완료: 졸업발표 차수별(1·3·5차) + 주제발표, "예약한 발표자 / 해당 발표자"
+    const gradList = [...phdGradList, ...msList];
+    const confirmStats = [
+        ...[1, 3, 5].map(round => ({ id: `statRound${round}`, round, needed: gradList.filter(p => getRequiredRounds(p).includes(round)) })),
+        { id: 'statRoundTopic', round: 1, needed: phdPropList }
+    ];
+    confirmStats.forEach(({ id, round, needed }) => {
         const done = needed.filter(p => getReservations(p).some(r => r.round === round)).length;
-        const el = document.getElementById(`statRound${round}`);
+        const el = document.getElementById(id);
         if (el) el.innerHTML = `${done}<span class="stat-round-total">/${needed.length}</span>`;
     });
 

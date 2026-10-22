@@ -633,7 +633,9 @@ a {
     box-shadow: var(--shadow-md);
 }
 
+/* 심사 확정 완료 (1차·3차·5차·주제발표 4칸): 카드 두 칸 너비 */
 .stats-card.highlight-card {
+    grid-column: span 2;
     background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 100%);
     border-color: var(--confirmed-border);
     min-width: 220px;
@@ -641,7 +643,7 @@ a {
 
 .stat-rounds {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .stat-round {

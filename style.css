@@ -197,7 +197,6 @@ a {
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-
 .presenter-selector-box label {
     font-size: 0.8rem;
     color: #cbd5e1;
@@ -508,14 +507,6 @@ a {
     align-items: center;
     justify-content: flex-end;
     margin-bottom: 12px;
-}
-
-.prof-pick-banner[hidden] {
-    display: none;
-}
-
-.prof-pick-banner #profPickText:empty {
-    display: none;
 }
 
 .prof-pick-actions {
@@ -905,7 +896,6 @@ a {
     text-align: center;
 }
 
-
 @media (max-width: 640px) {
     .roster-table-card {
         width: 100%;
@@ -947,33 +937,27 @@ a {
         font-size: 0.78rem;
         padding: 3px 8px;
     }
-}
 
-.category-section {
-    margin-bottom: 30px;
-}
-
-.category-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-    gap: 8px;
-    border-bottom: 1px solid var(--surface-border);
-    padding-bottom: 10px;
-}
-
-.cat-title-wrap {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.cat-title-wrap h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    /* 발표자 명단 창: 표를 화면 폭에 맞추고 심사 일시는 줄바꿈 (장소는 다음 줄) */
+    .presenter-list-table {
+        min-width: 0;
+    }
+    .presenter-list-table th,
+    .presenter-list-table td {
+        padding: 8px 6px;
+    }
+    .presenter-list-table .roster-round-line {
+        flex-wrap: wrap;
+        gap: 2px 6px;
+        white-space: normal;
+    }
+    .presenter-list-table .roster-round-line strong {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .presenter-list-table .presenter-list-location {
+        flex-basis: 100%;
+    }
 }
 
 .cat-pill {
@@ -989,114 +973,12 @@ a {
 .pill-phd-prop { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
 .pill-ms-grad { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
 
-.cat-desc {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.presenter-roster-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-    gap: 16px;
-}
-
-.roster-card {
-    background: var(--surface-card);
-    border: 1px solid var(--surface-border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    transition: all 0.2s ease;
-    min-height: 140px;
-}
-
-.roster-card:hover {
-    border-color: var(--primary-border);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.roster-card.is-confirmed-card {
-    border-color: var(--confirmed-border);
-    background: linear-gradient(135deg, #ffffff 0%, #faf8ff 100%);
-}
-
-/* 카드 구성: 이름 줄 → 상태 줄 → 심사위원단 → 버튼 (글자 크기 1.1 / 0.8 / 0.75rem 3단계) */
-.roster-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
+/* 발표자 표: 이름 */
 .roster-student-name {
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-primary);
     white-space: nowrap;
-}
-
-.roster-status-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 12px;
-}
-
-.roster-status-row .btn-roster-cancel {
-    padding: 2px 8px;
-    font-size: 0.75rem;
-}
-
-.roster-reviewer-preview {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 14px;
-    line-height: 1.5;
-}
-
-.roster-reviewer-title {
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.roster-reviewer-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px 12px;
-}
-
-.roster-reviewer {
-    white-space: nowrap;
-}
-
-.roster-reviewer-role {
-    color: var(--text-muted);
-    margin-right: 4px;
-}
-
-.roster-reviewer-empty {
-    color: var(--text-muted);
-}
-
-.roster-card-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: auto;
-}
-
-.roster-card-actions .btn {
-    flex: 1;
-}
-
-.status-badge.match-found {
-    background: #ecfdf5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
 }
 
 /* ==========================================================================
@@ -1205,12 +1087,6 @@ a {
     color: #ef4444;
     background: rgba(239, 68, 68, 0.15);
     transform: scale(1.1);
-}
-
-.status-badge.need-committee {
-    background: #fee2e2;
-    color: #991b1b;
-    border-color: #fca5a5;
 }
 
 .thesis-title {
@@ -1574,21 +1450,9 @@ a {
     background: #dcfce7;
 }
 
-.cal-reviewable-badge {
-    display: inline-block;
-    margin-bottom: 4px;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    font-size: 0.68rem;
-    font-weight: 700;
-    background: #d1fae5;
-    color: #065f46;
-    border: 1px solid #a7f3d0;
-    white-space: nowrap;
-}
-
 /* 홈 달력 칸: 배지·확정 칩·교수님 이니셜을 가운데 정렬하고, 덩어리 단위로만 줄바꿈 */
 .prof-cal-cell:not(.pick-mode) .cal-day-content {
+    flex: 1;
     align-items: center;
     text-align: center;
     text-wrap: balance;
@@ -1611,10 +1475,6 @@ a {
 
 .prof-cal-cell .cal-slot-chip.confirmed-chip > span {
     white-space: nowrap;
-}
-
-.prof-cal-cell:not(.pick-mode) .cal-day-content {
-    flex: 1;
 }
 
 .prof-cal-cell .cal-prof-initials-wrap {
@@ -1923,22 +1783,6 @@ a {
 }
 
 /* Date Detail Modal: 교수님 가능 여부 지정 + 발표자 선택 + 확정/취소 */
-.date-detail-guide {
-    margin-bottom: 12px;
-    font-size: 0.85rem;
-    color: #475569;
-    background: #f8fafc;
-    padding: 10px 14px;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
-}
-
-.date-detail-guide-sub {
-    display: block;
-    margin-top: 2px;
-    font-size: 0.78rem;
-    color: #64748b;
-}
 
 .date-detail-table {
     min-width: 760px;
@@ -2041,30 +1885,12 @@ a {
     max-width: 130px;
 }
 
-.slot-confirmed-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 6px;
-}
-
-.slot-confirmed-item .btn {
-    padding: 2px 8px;
-    font-size: 0.72rem;
-}
-
 /* 예약 완료 명단: 가로로 나열 */
 .slot-confirmed-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px 8px;
-}
-
-.slot-confirmed-row .slot-confirmed-item {
-    margin-top: 0;
 }
 
 .slot-time-label .btn-modal-confirm-slot {
@@ -2099,9 +1925,7 @@ a {
         padding: 3px 0;
         text-align: left;
     }
-    .date-detail-table .slot-confirmed-item {
-        justify-content: flex-start;
-    }
+
 }
 
 /* Recommendations */
@@ -2676,24 +2500,9 @@ a {
         font-size: 0.75rem;
     }
 
-    /* Sector 3: Presenter Cards (1-Column on Mobile) */
+    /* Sector 3: 발표자별 심사위원단 */
     .presenters-section-group {
         margin-top: 24px;
-    }
-    .roster-card {
-        padding: 14px;
-        border-radius: 12px;
-    }
-    .roster-card-actions {
-        flex-direction: column;
-        gap: 6px;
-    }
-    .roster-card-actions .btn {
-        width: 100%;
-        padding: 9px;
-        font-size: 0.85rem;
-        justify-content: center;
-        min-height: 40px;
     }
 
     /* Page 2: Individual Presenter Coordination View */

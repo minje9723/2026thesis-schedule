@@ -25,7 +25,6 @@ const PROFESSORS = { internal: [...BASE_PROFESSORS.internal], external: [...BASE
 const ALL_PROF_NAMES = [...PROFESSORS.internal, ...PROFESSORS.external];
 
 // 일단 숨겨 둔 화면 요소 (다시 보이려면 true)
-const SHOW_ROSTER_COORDINATION_BUTTON = false;   // 발표자 카드의 [일정 조율/확정 →] 버튼
 const SHOW_HEADER_PRESENTER_SELECT = false;      // 상단바의 '발표자 선택'
 const SHOW_HEADER_HOME_BUTTON = false;           // 상단바의 [홈 (교수님 캘린더)] 버튼
 
@@ -230,7 +229,7 @@ function getProfInitial(pName) {
     return getProfShortName(pName).charAt(0);
 }
 
-// 기본(샘플) 발표자 명단 - Firestore가 비어 있을 때 최초 1회 채움
+// 기본 발표자 명단 - Firestore가 비어 있을 때 최초 1회 채움 (심사 일정·교수님 가능 일정은 빈 상태로 시작)
 const DEFAULT_PRESENTERS = [
     // 1. 박사졸업발표 (내부 3 + 외부 2 = 총 5인)
     {
@@ -247,13 +246,7 @@ const DEFAULT_PRESENTERS = [
             { id: "r_p1_4", name: "정광용 교수님", role: "심사위원", type: "external" },
             { id: "r_p1_5", name: "조남철 교수님", role: "심사위원", type: "external" }
         ],
-        confirmedSchedule: {
-            date: "2026-11-27",
-            period: "PM",
-            time: "14:00",
-            duration: 30,
-            location: "세미나실 1호"
-        }
+        confirmedSchedule: null
     },
 
     // 2. 박사주제발표 (5명)
@@ -407,65 +400,6 @@ const DEFAULT_PRESENTERS = [
     }
 ];
 
-// 예시 가능 일정 (시간으로 적어 두고 오전/오후로 변환해 사용)
-function generateDefaultProfAvailability() {
-    const byTime = {
-        "김수철 교수님": [
-            "2026-11-19 14:00", "2026-11-19 14:30", "2026-11-19 15:00", "2026-11-19 15:30",
-            "2026-11-20 13:30", "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
-            "2026-11-26 14:00", "2026-11-26 14:30", "2026-11-26 15:00",
-            "2026-11-27 13:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
-            "2026-12-04 14:00", "2026-12-04 14:30", "2026-12-04 15:00"
-        ],
-        "이상옥 교수님": [
-            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
-            "2026-11-25 10:00", "2026-11-25 10:30", "2026-11-25 11:00",
-            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ],
-        "권희홍 교수님": [
-            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 14:00", "2026-11-19 14:30",
-            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
-            "2026-11-26 14:00", "2026-11-26 14:30",
-            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ],
-        "한민수 교수님": [
-            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 11:00",
-            "2026-11-24 14:00", "2026-11-24 14:30", "2026-11-24 15:00",
-            "2026-11-26 14:00", "2026-11-26 14:30",
-            "2026-12-01 14:00", "2026-12-01 14:30", "2026-12-01 15:00"
-        ],
-        "정용재 교수님": [
-            "2026-11-19 10:00", "2026-11-19 10:30", "2026-11-19 14:00", "2026-11-19 14:30",
-            "2026-11-24 14:00", "2026-11-24 14:30",
-            "2026-11-26 14:00", "2026-11-26 14:30",
-            "2026-12-01 14:00", "2026-12-01 14:30"
-        ],
-        "정광용 교수님": [
-            "2026-11-27 13:30", "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ],
-        "조남철 교수님": [
-            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00", "2026-11-27 15:30",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ],
-        "박정혜 교수님": [
-            "2026-11-20 14:00", "2026-11-20 14:30", "2026-11-20 15:00",
-            "2026-11-27 14:00", "2026-11-27 14:30",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ],
-        "이광웅 교수님": [
-            "2026-11-20 14:00", "2026-11-20 14:30",
-            "2026-11-27 14:00", "2026-11-27 14:30", "2026-11-27 15:00",
-            "2026-12-04 14:00", "2026-12-04 14:30"
-        ]
-    };
-    const result = {};
-    Object.keys(byTime).forEach(name => { result[name] = toPeriodSlots(byTime[name]); });
-    return result;
-}
-
 let appState = {
     presenters: [],
     profAvailability: {},
@@ -488,21 +422,20 @@ function loadState() {
         if (savedPresenters && savedProfAvail) {
             appState.presenters = JSON.parse(savedPresenters);
             const savedAvail = JSON.parse(savedProfAvail);
-            const defaults = generateDefaultProfAvailability();
             appState.profAvailability = {};
             Object.keys(savedAvail).forEach(pName => {
                 appState.profAvailability[pName] = toPeriodSlots(savedAvail[pName]);
             });
             ALL_PROF_NAMES.forEach(pName => {
-                if (!appState.profAvailability[pName]) appState.profAvailability[pName] = defaults[pName] || [];
+                if (!appState.profAvailability[pName]) appState.profAvailability[pName] = [];
             });
         } else {
-            resetToSampleData();
+            resetToDefaultData();
             return;
         }
     } catch (e) {
         console.warn("Storage load error, resetting to default:", e);
-        resetToSampleData();
+        resetToDefaultData();
         return;
     }
 
@@ -524,9 +457,10 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY_PROF_AVAIL, JSON.stringify(appState.profAvailability));
 }
 
-function resetToSampleData() {
+function resetToDefaultData() {
     appState.presenters = JSON.parse(JSON.stringify(DEFAULT_PRESENTERS));
-    appState.profAvailability = generateDefaultProfAvailability();
+    appState.profAvailability = {};
+    ALL_PROF_NAMES.forEach(pName => { appState.profAvailability[pName] = []; });
     appState.currentPresenterId = "p_phd_1";
     saveState();
 }
@@ -534,7 +468,7 @@ function resetToSampleData() {
 // ==========================================================================
 // 1-2. Firestore 실시간 공유 저장 (firebase-config.js 설정 시 사용)
 // - presenters/{발표자 id}: 발표자 정보 전체
-// - profAvailability/{교수님 이름}: { slots: ["2026-11-27 14:00", ...] }
+// - profAvailability/{교수님 이름}: { slots: ["2026-11-27 PM", ...] }
 // ==========================================================================
 
 const FS_COL_PRESENTERS = 'presenters';
@@ -607,9 +541,8 @@ function seedFirestore(collectionName) {
             batch.set(firestoreDb.collection(FS_COL_PRESENTERS).doc(p.id), JSON.parse(JSON.stringify(p)));
         });
     } else {
-        const defaults = generateDefaultProfAvailability();
         ALL_PROF_NAMES.forEach(pName => {
-            batch.set(firestoreDb.collection(FS_COL_PROF_AVAIL).doc(pName), { slots: defaults[pName] || [] });
+            batch.set(firestoreDb.collection(FS_COL_PROF_AVAIL).doc(pName), { slots: [] });
         });
     }
     batch.commit().catch(handleSyncError);
@@ -1009,7 +942,6 @@ function renderProfCalendarHero() {
     banner.hidden = !pickProf;
     document.querySelector('.legend-cal-tip').hidden = !!pickProf;   // '날짜를 누르면 현황 표' 안내는 전체 보기에서만
     if (pickProf) {
-        document.getElementById('profPickText').textContent = '';
         document.getElementById('btnProfPickAll').textContent =
             isProfMonthFull(pickProf, month) ? `${month}월 전체 해제` : `${month}월 전체 가능`;
     }
@@ -1415,9 +1347,7 @@ function renderRosterTable(list) {
             e.stopPropagation();
             const id = btn.getAttribute('data-id');
             const target = appState.presenters.find(p => p.id === id);
-            if (target && cancelConfirmationWithPrompt(target, Number(btn.getAttribute('data-round')))) {
-                renderAll();
-            }
+            if (target) cancelConfirmationWithPrompt(target, Number(btn.getAttribute('data-round')));
         });
     });
 }

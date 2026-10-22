@@ -7,13 +7,15 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isValidPresenter(d) {
-      return d.keys().hasOnly(['id', 'name', 'category', 'duration', 'thesisTitle', 'location', 'reviewers', 'confirmedSchedule'])
+      return d.keys().hasOnly(['id', 'name', 'category', 'duration', 'thesisTitle', 'location', 'reviewers', 'confirmedSchedule', 'reservations'])
         && d.name is string && d.name.size() > 0 && d.name.size() <= 50
         && d.category in ['박사졸업발표', '박사주제발표', '석사졸업발표']
         && d.reviewers is list && d.reviewers.size() <= 12
         && (!('thesisTitle' in d) || (d.thesisTitle is string && d.thesisTitle.size() <= 300))
         && (!('location' in d) || (d.location is string && d.location.size() <= 100))
-        && (!('confirmedSchedule' in d) || d.confirmedSchedule == null || d.confirmedSchedule is map);
+        && (!('confirmedSchedule' in d) || d.confirmedSchedule == null || d.confirmedSchedule is map)
+        // 차수별 예약 목록 (박사졸업 1·3·5차, 석사졸업 1·3차, 박사주제 1차)
+        && (!('reservations' in d) || (d.reservations is list && d.reservations.size() <= 5));
     }
 
     // 발표자 정보

@@ -9,7 +9,7 @@
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     <!-- ?v= 값: style.css·firebase-config.js·script.js를 고쳐 배포할 때마다 세 곳 모두 같은 새 값으로 올림 (README 참고) -->
-    <link rel="stylesheet" href="style.css?v=20261022.15">
+    <link rel="stylesheet" href="style.css?v=20261022.16">
 </head>
 
 <body>
@@ -65,7 +65,6 @@
                     <div class="prof-filter-chips" id="profFilterChips"></div>
                 </div>
                 <div class="prof-pick-banner" id="profPickBanner" hidden>
-                    <span id="profPickText"></span>
                     <div class="prof-pick-actions">
                         <button type="button" class="btn btn-sm btn-outline" id="btnProfPickAll">전체 가능</button>
                         <button type="button" class="btn btn-sm btn-primary" id="btnProfPickDone">선택 완료 (전체 보기)</button>
@@ -370,7 +369,7 @@
 
                 <div hidden>
                 <h4 class="form-section-title">1. 발표 기본 정보 (인당 30분 배정)</h4>
-                <div class="form-row grid-3">
+                <div class="form-row grid-2">
                     <div class="form-group">
                         <label for="inputPresenterName">발표자 성명 *</label>
                         <input type="text" id="inputPresenterName" required class="form-control" readonly
@@ -383,11 +382,6 @@
                             <option value="박사주제발표">박사 주제발표 (내·외부 자유 구성)</option>
                             <option value="석사졸업발표">석사 졸업발표 (내·외부 자유 구성)</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="inputDuration">배정 소요시간</label>
-                        <input type="text" id="inputDuration" value="30분" class="form-control" readonly
-                            style="background:#f1f5f9; font-weight:bold;">
                     </div>
                 </div>
 
@@ -523,8 +517,8 @@
     <!-- Firebase (Firestore 실시간 공유 저장) -->
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js?v=20261022.15"></script>
-    <script src="script.js?v=20261022.15"></script>
+    <script src="firebase-config.js?v=20261022.16"></script>
+    <script src="script.js?v=20261022.16"></script>
 </body>
 
 </html>

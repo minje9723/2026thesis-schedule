@@ -1504,8 +1504,37 @@ a {
     letter-spacing: -0.04em;
 }
 
+.prof-cal-cell .cal-slot-chip.confirmed-chip {
+    font-size: 10px;
+    font-weight: 700;
+}
+
 .prof-cal-cell .cal-slot-chip.confirmed-chip > span {
     white-space: nowrap;
+}
+
+.prof-cal-cell .cal-slot-chip.confirmed-chip .chip-time {
+    opacity: 0.85;
+}
+
+/* 달력 일정 (추계학회, 크리스마스 등): PC는 크게, 휴대폰은 작게 */
+.cal-event-label {
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #b45309;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.cal-event-label.is-holiday {
+    color: #e11d2e;
+}
+
+@media (max-width: 640px) {
+    .cal-event-label {
+        font-size: 10px;
+    }
 }
 
 .prof-cal-cell .cal-prof-initials-wrap {

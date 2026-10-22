@@ -122,7 +122,8 @@ function scheduleText(schedule) {
     return `${schedule.date} (${dayName}) ${schedule.time} ~ ${getEndTime30Min(schedule.time)}`;
 }
 
-// 발표 구분별 예약해야 하는 차수: 박사졸업 1·3·5차, 석사졸업 1·3차, 박사주제 1차
+// 발표 구분별 예약해야 하는 차수: 박사졸업 1차·3차·최종, 석사졸업 1차·최종, 박사주제 1차
+// (저장 값은 숫자: 박사졸업 최종 = 5, 석사졸업 최종 = 3)
 const REQUIRED_ROUNDS = {
     '박사졸업발표': [1, 3, 5],
     '석사졸업발표': [1, 3],
@@ -132,6 +133,18 @@ const REQUIRED_ROUNDS = {
 function getRequiredRounds(presenter) {
     return REQUIRED_ROUNDS[presenter.category] || [1];
 }
+
+// 화면에 보이는 차수 이름: 여러 차수 중 마지막은 '최종', 나머지는 'N차'
+function roundName(presenter, round) {
+    const required = getRequiredRounds(presenter);
+    return required.length > 1 && round === required[required.length - 1] ? '최종' : `${round}차`;
+}
+
+// 달력에 표시할 일정 (holiday: 날짜와 글자를 빨간색으로)
+const CALENDAR_EVENTS = {
+    '2026-11-13': { label: '추계학회' },
+    '2026-12-25': { label: '🎄 크리스마스', holiday: true }
+};
 
 // 발표자의 예약 목록 [{ round, date, period, time, duration, location }] (차수 순).
 // 차수 도입 전 데이터(confirmedSchedule 하나)는 1차 예약으로 보정해 읽음
@@ -179,7 +192,7 @@ function roundOptionsHtml(presenter, selectedRound) {
     const reserved = getReservations(presenter).map(r => r.round);
     const selected = selectedRound || getNextRound(presenter) || getRequiredRounds(presenter)[0];
     return getRequiredRounds(presenter).map(round =>
-        `<option value="${round}" ${round === selected ? 'selected' : ''}>${round}차${reserved.includes(round) ? ' (예약됨·변경)' : ''}</option>`
+        `<option value="${round}" ${round === selected ? 'selected' : ''}>${roundName(presenter, round)}${reserved.includes(round) ? ' (예약됨·변경)' : ''}</option>`
     ).join('');
 }
 
@@ -812,7 +825,7 @@ function confirmPresenterSchedule(presenter, dateStr, period, time, location, ro
     }
 
     round = Number(round) || getNextRound(presenter) || getRequiredRounds(presenter)[0];
-    const roundLabel = getRequiredRounds(presenter).length > 1 ? `${round}차 ` : '';
+    const roundLabel = getRequiredRounds(presenter).length > 1 ? `${roundName(presenter, round)} ` : '';
 
     // 같은 날 30분 발표끼리(같은 발표자의 다른 차수 포함) 겹치는지 확인
     const overlapping = getAllReservations().find(({ p: x, r }) =>
@@ -889,7 +902,7 @@ function hideCelebration() {
 // 확인 창을 띄운 뒤 예약 취소. round를 주면 해당 차수만, 생략하면 모든 차수. 취소했으면 true
 function cancelConfirmationWithPrompt(presenter, round) {
     round = Number(round) || 0;
-    const label = round && getRequiredRounds(presenter).length > 1 ? `${round}차 ` : '';
+    const label = round && getRequiredRounds(presenter).length > 1 ? `${roundName(presenter, round)} ` : '';
     if (!confirm(`${presenter.name}님의 ${round ? label : '모든 '}예약된 심사 일정을 취소하시겠습니까?`)) return false;
     setReservations(presenter, round ? getReservations(presenter).filter(r => r.round !== round) : []);
     saveState();
@@ -980,10 +993,10 @@ function renderProfCalendarHero() {
 
             // 달력 칸에는 시간·이름만 (차수는 마우스를 올렸을 때 안내에만)
             contentHtml = confirmedHere.map(({ p: item, r }) => {
-                const roundText = getRequiredRounds(item).length > 1 ? ` ${r.round}차` : '';
+                const roundText = getRequiredRounds(item).length > 1 ? ` ${roundName(item, r.round)}` : '';
                 return `
-                <div class="cal-slot-chip confirmed-chip" title="${item.name}${roundText} (${item.category}) ${r.time} 심사 확정" style="padding:2px 4px; font-size:11px; font-weight:700; margin-bottom:4px;">
-                    <span style="font-size:11px; opacity:0.85;">${r.time}</span> ${item.name}
+                <div class="cal-slot-chip confirmed-chip" title="${item.name}${roundText} (${item.category}) ${r.time} 심사 확정">
+                    <span class="chip-time">${r.time}</span> ${item.name}
                 </div>
             `;
             }).join('');
@@ -998,13 +1011,13 @@ function renderProfCalendarHero() {
             }
         }
 
-        const isChristmas = dateStr.endsWith('-12-25');
-        if (isChristmas) cell.classList.add('is-holiday');
+        const event = CALENDAR_EVENTS[dateStr];
+        if (event && event.holiday) cell.classList.add('is-holiday');
         cell.innerHTML = `
             <div class="cal-day-header">
                 <span class="cal-day-num">${dayNum}</span>
             </div>
-            ${isChristmas ? '<div class="cal-holiday-label" style="font-size:0.7rem; font-weight:700; color:#e11d2e; margin-bottom:4px;">🎄 크리스마스</div>' : ''}
+            ${event ? `<div class="cal-event-label ${event.holiday ? 'is-holiday' : ''}">${event.label}</div>` : ''}
             <div class="cal-day-content">${contentHtml}</div>
         `;
 
@@ -1142,7 +1155,7 @@ function refreshDateDetailRows() {
         resBox.innerHTML = `<h4 class="form-section-title" style="margin:0 0 8px;">✅ 심사 가능 발표자</h4>${availHtml}`
             + `<h4 class="form-section-title" style="margin:14px 0 8px;">📌 예약 내역 (${reserved.length}건)</h4>`
             + (reserved.length
-                ? `<div class="slot-confirmed-row">${reserved.map(({ p, r }) => `<span class="status-badge confirmed">${r.time}~${getEndTime30Min(r.time)} ${p.name}${getRequiredRounds(p).length > 1 ? ` ${r.round}차` : ''} <button type="button" class="btn-modal-cancel-slot badge-cancel-x" data-id="${p.id}" data-round="${r.round}" title="예약 취소" aria-label="취소">✕</button></span>`).join('')}</div>`
+                ? `<div class="slot-confirmed-row">${reserved.map(({ p, r }) => `<span class="status-badge confirmed">${r.time}~${getEndTime30Min(r.time)} ${p.name}${getRequiredRounds(p).length > 1 ? ` ${roundName(p, r.round)}` : ''} <button type="button" class="btn-modal-cancel-slot badge-cancel-x" data-id="${p.id}" data-round="${r.round}" title="예약 취소" aria-label="취소">✕</button></span>`).join('')}</div>`
                 : '<div class="presenter-list-pending">이 날짜에 예약된 발표가 없습니다.</div>');
     }
 }
@@ -1177,7 +1190,7 @@ function buildDateDetailRow(dateStr, period, draft) {
 
     const confirmedList = confirmedHere.map(({ p, r }) => `
         <span class="status-badge confirmed">
-            ${r.time} ${p.name}${getRequiredRounds(p).length > 1 ? ` ${r.round}차` : ''}
+            ${r.time} ${p.name}${getRequiredRounds(p).length > 1 ? ` ${roundName(p, r.round)}` : ''}
             <button type="button" class="btn-modal-cancel-slot badge-cancel-x" data-id="${p.id}" data-round="${r.round}" title="예약 취소" aria-label="취소">✕</button>
         </span>
     `).join('');
@@ -1248,7 +1261,7 @@ function renderPresenterList(categoryFilter = 'all') {
         const showTag = requiredRounds.length > 1;
         const when = requiredRounds.map(round => {
             const r = getReservations(p).find(x => x.round === round);
-            const tag = showTag ? `<span class="round-tag">${round}차</span>` : '';
+            const tag = showTag ? `<span class="round-tag">${roundName(p, round)}</span>` : '';
             if (!r) return `<div class="roster-round-line">${tag}<span class="presenter-list-pending">미정</span></div>`;
             const { m, d, dayName } = formatDateWithDay(r.date);
             return `<div class="roster-round-line">${tag}<strong>${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)}</strong></div>`;
@@ -1286,14 +1299,17 @@ function renderPresentersSection() {
     document.getElementById('statPhdGradCount').textContent = phdGradList.length;
     document.getElementById('statPhdPropCount').textContent = phdPropList.length;
     document.getElementById('statMsCount').textContent = msList.length;
-    // 심사 확정 완료: 졸업발표 차수별(1·3·5차) + 주제발표, "예약한 발표자 / 해당 발표자"
+    // 심사 확정 완료: 졸업발표(박사·석사) 1차 · 3차(박사만) · 최종 + 주제발표, "예약한 발표자 / 해당 발표자"
     const gradList = [...phdGradList, ...msList];
+    const finalRound = p => getRequiredRounds(p)[getRequiredRounds(p).length - 1];
     const confirmStats = [
-        ...[1, 3, 5].map(round => ({ id: `statRound${round}`, round, needed: gradList.filter(p => getRequiredRounds(p).includes(round)) })),
-        { id: 'statRoundTopic', round: 1, needed: phdPropList }
+        { id: 'statRound1', needed: gradList, roundOf: () => 1 },
+        { id: 'statRound3', needed: gradList.filter(p => getRequiredRounds(p).slice(1, -1).includes(3)), roundOf: () => 3 },
+        { id: 'statRoundFinal', needed: gradList, roundOf: finalRound },
+        { id: 'statRoundTopic', needed: phdPropList, roundOf: () => 1 }
     ];
-    confirmStats.forEach(({ id, round, needed }) => {
-        const done = needed.filter(p => getReservations(p).some(r => r.round === round)).length;
+    confirmStats.forEach(({ id, needed, roundOf }) => {
+        const done = needed.filter(p => getReservations(p).some(r => r.round === roundOf(p))).length;
         const el = document.getElementById(id);
         if (el) el.innerHTML = `${done}<span class="stat-round-total">/${needed.length}</span>`;
     });
@@ -1324,10 +1340,10 @@ function renderRosterTable(list) {
         const showTag = requiredRounds.length > 1;
         const whenHtml = `<div class="roster-rounds">${requiredRounds.map(round => {
             const r = getReservations(p).find(x => x.round === round);
-            const tag = showTag ? `<span class="round-tag">${round}차</span>` : '';
+            const tag = showTag ? `<span class="round-tag">${roundName(p, round)}</span>` : '';
             if (!r) return `<div class="roster-round-line">${tag}<span class="presenter-list-pending">미정</span></div>`;
             const { m, d, dayName } = formatDateWithDay(r.date);
-            return `<div class="roster-round-line">${tag}<span class="status-badge confirmed">${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)} <button type="button" class="btn-roster-cancel badge-cancel-x" data-id="${p.id}" data-round="${round}" title="${round}차 예약 취소" aria-label="취소">✕</button></span></div>`;
+            return `<div class="roster-round-line">${tag}<span class="status-badge confirmed">${Number(m)}월 ${Number(d)}일 (${dayName}) ${r.time}~${getEndTime30Min(r.time)} <button type="button" class="btn-roster-cancel badge-cancel-x" data-id="${p.id}" data-round="${round}" title="${roundName(p, round)} 예약 취소" aria-label="취소">✕</button></span></div>`;
         }).join('')}</div>`;
 
         return `

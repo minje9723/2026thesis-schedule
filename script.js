@@ -1301,12 +1301,24 @@ function renderPresentersSection() {
     renderRosterTable(presenters);
 }
 
+// 심사위원 구성 버튼 아이콘 (지정됨: 사람들, 미지정: 더하기)
+const ICON_PEOPLE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+const ICON_PLUS = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+
+function committeeButtonHtml(p) {
+    const reviewers = p.reviewers || [];
+    if (!reviewers.length) {
+        return `<button type="button" class="committee-btn is-empty btn-manage-committee" data-id="${p.id}" title="심사위원을 지정하세요">${ICON_PLUS}<span>심사위원 지정</span></button>`;
+    }
+    const names = reviewers.map(r => getProfShortName(r.name)).join(', ');
+    return `<button type="button" class="committee-btn btn-manage-committee" data-id="${p.id}" title="심사위원: ${names} (누르면 수정)">${ICON_PEOPLE}<span>심사위원 ${reviewers.length}명</span></button>`;
+}
+
 function renderRosterTable(list) {
     const tbody = document.getElementById('rosterTableBody');
     if (!tbody) return;
 
     tbody.innerHTML = list.map(p => {
-        const pill = CATEGORY_PILLS[p.category] || { label: p.category.replace('발표', ''), className: 'pill-phd-grad' };
         const requiredRounds = getRequiredRounds(p);
         const showTag = requiredRounds.length > 1;
         const whenHtml = `<div class="roster-rounds">${requiredRounds.map(round => {
@@ -1325,9 +1337,7 @@ function renderRosterTable(list) {
                     </div>
                 </td>
                 <td class="center">
-                    <button type="button" class="btn btn-sm btn-outline btn-manage-committee" data-id="${p.id}">
-                        구성
-                    </button>
+                    ${committeeButtonHtml(p)}
                 </td>
                 <td class="roster-when">
                     ${whenHtml}
